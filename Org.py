@@ -304,10 +304,18 @@ class Toplevel1:
         self.Back.place(relx=positions[0], rely=0.537, height=26, width=width)
         self.ChangeDir.place(relx = .15, rely=.47, width = width*1.75)
 
-        helpMessage = """open: Opens file
-moveto [dest]: moves file to dest if dest is within defined pathto
-newfolder [name]: creates new folder with name in pathto and places file there
-remove: deletes file"""
+        helpMessage = """Welcome! 
+The organizer is defaulted to operate within C:\\Users\\\{name\}, go to change directorys to change this. Change directories can take an absolute or relative path to either one.
+
+The buttons (Scroll to see all of them):
+
+Open: Opens the current file
+
+Move To [dest]: moves file to destination typed in entry box above (Moves to directory relative to target directory)
+
+New Folder [name]: Creates new file in directory specified in above textbox. The final argument dictates name of new directory
+
+Delete: Deletes current file"""
         self.Text2 = tk.Text(self.top)
         self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
         self.Text2.configure(background="#d9d9d9")
