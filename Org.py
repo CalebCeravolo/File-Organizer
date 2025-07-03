@@ -159,11 +159,17 @@ class Toplevel1:
 
         #self.Preview.lift(aboveThis=self.PictureFrame)
         try:
-            self.PictureFrame.place(relx = .5, rely = 0,anchor = "nw")
+            self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
             image = Img.open(self.org.full_path())
-            ratio = image.size[0]/image.size[1]
-            image = image.resize((int(400*ratio),400))
-            img = ImageTk.PhotoImage(image, size = (1,1))
+            width  = int(self.top.winfo_width()*(.557))
+            height  = int(self.top.winfo_height()*(.949))
+            ratio = height/image.size[1]
+            if (ratio*image.size[0]>width):
+                ratio = width/image.size[0]
+                image = image.resize((width, int(ratio*image.size[1])))
+            else:
+                image = image.resize((int(image.size[0]*ratio), height))
+            img = ImageTk.PhotoImage(image)
             self.PictureFrame.config(image=img)
             self.PictureFrame.image = img
         except: 
@@ -219,17 +225,7 @@ class Toplevel1:
         self.Settings.add_command(label='Settings',command=self.open_settings)
         self.menubar.add_cascade(label="File",menu=self.Settings)
 
-        self.Next = tk.Button(self.top)
-        self.Next.configure(activebackground="#d9d9d9")
-        self.Next.configure(activeforeground="black")
-        self.Next.configure(background="#d9d9d9")
-        self.Next.configure(disabledforeground="#a3a3a3")
-        self.Next.configure(font="-family {Segoe UI} -size 9")
-        self.Next.configure(foreground="#000000")
-        self.Next.configure(highlightbackground="#d9d9d9")
-        self.Next.configure(highlightcolor="#000000")
-        self.Next.configure(text='''Next''')
-        self.Next.configure(command = self.next)
+        
 
         self.Open = tk.Button(self.top)
         self.Open.configure(activebackground="#d9d9d9")
@@ -280,6 +276,18 @@ class Toplevel1:
         self.Moveto.configure(command = self.moveto)
         self.Back = tk.Button(self.top)
         
+        self.Next = tk.Button(self.top)
+        self.Next.configure(activebackground="#d9d9d9")
+        self.Next.configure(activeforeground="black")
+        self.Next.configure(background="#d9d9d9")
+        self.Next.configure(disabledforeground="#a3a3a3")
+        self.Next.configure(font="-family {Segoe UI} -size 9")
+        self.Next.configure(foreground="#000000")
+        self.Next.configure(highlightbackground="#d9d9d9")
+        self.Next.configure(highlightcolor="#000000")
+        self.Next.configure(text='''Next''')
+        self.Next.configure(command = self.next)
+
         self.Back.configure(activebackground="#d9d9d9")
         self.Back.configure(activeforeground="black")
         self.Back.configure(background="#d9d9d9")
@@ -347,18 +355,9 @@ Delete: Deletes current file"""
         self.Preview.configure(wrap="word")
 
         self.PictureFrame = tk.Label(self.top)
-        self.PictureFrame.place(relx=0.425, rely=0.015, height=23, width=81)
+        self.PictureFrame.place(relx=0.425, rely=0.015, height=23, width=81, anchor = "nw")
         self.PictureFrame.configure(activebackground="#d9d9d9")
         self.PictureFrame.configure(activeforeground="black")
-        self.PictureFrame.configure(anchor='w')
-        self.PictureFrame.configure(background="#d9d9d9")
-        self.PictureFrame.configure(compound='left')
-        self.PictureFrame.configure(disabledforeground="#a3a3a3")
-        self.PictureFrame.configure(font="-family {Segoe UI} -size 9")
-        self.PictureFrame.configure(foreground="#000000")
-        self.PictureFrame.configure(highlightbackground="#d9d9d9")
-        self.PictureFrame.configure(highlightcolor="#000000")
-        self.PictureFrame.configure(text='''Label''')
         
         self.currentSource = tk.Label(self.top)
         self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory = ")
