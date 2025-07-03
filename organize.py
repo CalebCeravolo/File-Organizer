@@ -37,14 +37,21 @@ class sorter:
         return os.path.join(self.path, self.matches[self.index])
     def change_source(self, new_path):
         if ("c:" in new_path.lower()):
-            self.path = new_path
+            if (os.path.isdir(new_path)):
+                self.path = new_path
         else: 
-            self.path = os.path.join(self.path, new_path)
+            path = os.path.join(self.path, new_path)
+            if (os.path.isdir(path)):
+                self.path = path
+
     def change_dest(self, new_dest):
         if ("c:" in new_dest.lower()):
-            self.pathto = new_dest
+            if (os.is_dir(new_dest)):
+                self.pathto = new_dest
         else: 
-            self.pathto = os.path.join(self.pathto, new_dest)
+            path = os.path.join(self.pathto, new_dest)
+            if (os.is_dir(path)):
+                self.pathto = path
     def printCurrent(self):
         file=self.matches[self.index]
         print(f"File: {file}")

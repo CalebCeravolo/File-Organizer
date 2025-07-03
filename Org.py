@@ -88,7 +88,7 @@ class OpenPage:
         self.TEntry1 = ttk.Entry(self.top)
         self.TEntry1.place(relx=0.346, rely=0.443, relheight=0.042
                 , relwidth=0.247, anchor = 'w')
-        self.TEntry1.configure(font="-family {Segoe UI} -size 9")
+        self.TEntry1.configure(font="-family {Courier New} -size 10")
         self.TEntry1.configure(textvariable=self.dest)
         self.TEntry1.configure(cursor="ibeam")
 
@@ -153,7 +153,7 @@ class Toplevel1:
         try:
             with open(file_name, "r") as f:
                 content = f.read()
-                self.Preview.insert(1.0, content)
+                self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
         except:
             pass
 
@@ -172,7 +172,7 @@ class Toplevel1:
         if (".pdf" in file_name):
             with open(self.org.full_path(), "rb") as f:
                 reader = PyPDF2.PdfReader(f)
-                for i in range(min(self.show_num_pages, len(reader.pages))):
+                for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
                     self.Preview.insert(i+0.0, reader.pages[i].extract_text())
             # pages = convert_from_path(self.org.full_path())
             # for i, page in enumerate(pages):
@@ -188,6 +188,9 @@ class Toplevel1:
     def openOther(self, *args):
         _top1 = tk.Toplevel(self.top)
         self.OtherPage = OpenPage(self.org, self, _top1)
+    def open_settings(self, *args):
+        top1 = tk.Toplevel(self.top)
+        self.Settings = Settings_window(self.vars, self,top=top1)
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -199,7 +202,9 @@ class Toplevel1:
         top.configure(background="#d9d9d9")
         top.configure(highlightbackground="#d9d9d9")
         top.configure(highlightcolor="#000000")
-        self.show_num_pages = 5
+        show_num_pages = 5
+        show_num_characters = 100
+        self.vars = {"Number of pages shown (pdf)" : show_num_pages, "Number of characters shown (plain text)" : show_num_characters}
         self.top = top
         self.File = tk.StringVar()
         self.org = org
@@ -211,7 +216,7 @@ class Toplevel1:
         self.menubar = Menu(self.top)
         self.top.config(menu = self.menubar)
         self.Settings = Menu(self.menubar, tearoff=False)
-        self.Settings.add_command(label='Exit',command=self.ask_num_pages)
+        self.Settings.add_command(label='Settings',command=self.open_settings)
         self.menubar.add_cascade(label="File",menu=self.Settings)
 
         self.Next = tk.Button(self.top)
@@ -442,23 +447,37 @@ class AutoScroll(object):
         return str(self.master)
 
 class Settings_window:
-    def change_setting(self):
-        pass
-    def __init__(self, vars, top=None):
+    def change_setting(self, item,*args):
+        text = self.entries[item].get()
+        self.settings[item] = int(text)
+        self.setting_items[item].configure(text = f"{item}: {text}")
+        self.main.preview()
+    
+    def __init__(self, vars, main,top=None):
+        top.geometry("400x300")
+        top.title("Settings")
         self.settings = vars
         self.entries = {}
-        locx = .2
+        self.setting_items = {}
+        self.buttons = {}
+        self.main = main
+        locx = .90
         locy = linspace(.1, .8, len(vars))
-        width = .1
+        buttonwidth = .1
+        boxwidth = .1
         self.top = top
+        buffer=.03
         for i, item in enumerate(self.settings):
-            self.setting = tk.Label(self.top, text = f"{item}: {self.settings[item]}")
-            self.entrybox = tk.Entry(self.top)
-            self.button = tk.Button(self.top, text = "set", command = lambda : self.change_setting(item))
-            self.setting.place(relx = locx[0], rely = locy[i], anchor = "e")
-            self.entrybox.place(relx = locx[0], rely = locy[i], anchor = "w", relwidth = width)
-            self.button.place(relx = locx[0]+width, rely = locy[i], anchor = "w")
-            self.entries[item] = self.entrybox
+            setting = tk.Label(self.top, text = f"{item}: {self.settings[item]}")
+            entrybox = tk.Entry(self.top)
+            button = ttk.Button(self.top, text = "Set",command = lambda i=item: self.change_setting(item = i))
+            button.place(relx = locx, rely = locy[i],relwidth= buttonwidth, anchor = "e")
+            setting.place(relx = locx-buttonwidth-boxwidth-2*buffer, rely = locy[i], anchor = "e")
+            entrybox.place(relx = locx-buttonwidth-buffer, rely = locy[i], anchor = "e", relwidth = boxwidth)
+            
+            self.entries[item] = entrybox
+            self.setting_items[item] = setting
+            self.buttons[item] = button
 
 
 
