@@ -147,10 +147,13 @@ class Toplevel1:
         self.preview()
     def preview(self, *args):
         file_name = self.org.full_path()
+        self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
         self.currentD.set(self.org.pathto)
         self.currentS.set(self.org.path)
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
+        for object in self.updates:
+            object.update()
         if (os.path.isdir(file_name)):
             for i, file in enumerate(self.org.get_children()):
                 self.Preview.insert(i+.0, f"{file}\n")
@@ -187,17 +190,6 @@ class Toplevel1:
                 reader = PyPDF2.PdfReader(f)
                 for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
                     self.Preview.insert(i+0.0, reader.pages[i].extract_text())
-            # pages = convert_from_path(self.org.full_path())
-            # for i, page in enumerate(pages):
-            #     self.Preview.insert(i+.0, pytesseract.image_to_string(page))
-            
-            # images = convert_from_path(self.org.full_path())
-            # image = images[0]
-            # ratio = image.size[0]/image.size[1]
-            # image = image.resize((int(400*ratio),400))
-            # img = ImageTk.PhotoImage(image, size = (1,1))
-            # self.PictureFrame.config(image=img)
-            # self.PictureFrame.image = img
     def openOther(self, *args):
         _top1 = tk.Toplevel(self.top)
         self.OtherPage = OpenPage(self.org, self, _top1)
@@ -210,6 +202,10 @@ class Toplevel1:
     def move_back(self, *args):
         self.org.move_back()
         self.preview()
+    def open_preview(self, *args):
+        top1 = tk.Toplevel(self.top)
+        other_preview = Extra_preview(self.Surrounding, top1)
+        self.updates.append(other_preview)
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -224,12 +220,16 @@ class Toplevel1:
         show_num_pages = 5
         show_num_characters = 100
         show_num_files = 20
+        show_num_surrounding_files = 5
         self.vars = {"Number of pages shown (pdf)" : show_num_pages, 
                      "Number of characters shown (plain text)" : show_num_characters,
-                     "Number of subfiles shown (for directories)" : show_num_files}
+                     "Number of subfiles shown (for directories)" : show_num_files,
+                     "Number of surrounding files show" : show_num_surrounding_files}
         self.top = top
+        self.updates = []
         self.File = tk.StringVar()
         self.org = org
+        self.Surrounding = StringVar()
         self.entry = tk.StringVar()
         self.currentS=tk.StringVar()
         self.currentD = tk.StringVar()
@@ -240,8 +240,6 @@ class Toplevel1:
         self.Settings = Menu(self.menubar, tearoff=False)
         self.Settings.add_command(label='Settings',command=self.open_settings)
         self.menubar.add_cascade(label="File",menu=self.Settings)
-
-        
 
         self.Open = tk.Button(self.top)
         self.Open.configure(activebackground="#d9d9d9")
@@ -325,6 +323,8 @@ class Toplevel1:
         self.ChangeDir = Button(self.top)
         self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
+        self.Extra_preview = Button(self.top)
+        self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
         positions = linspace(.01, .35, 6)
         width = 67
         self.Next.place(relx=positions[1], rely=0.537, height=26, width=width)
@@ -336,6 +336,7 @@ class Toplevel1:
         self.ChangeDir.place(relx = positions[0], rely=.47, width = width*2)
         self.Enter.place(relx = positions[2], rely = .47, height = 26, width=width*2)
         self.Move_back.place(relx = positions[4], rely = .47, height = 26, width=width*2.5)
+        self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         helpMessage = """Welcome! 
 The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path.
 
@@ -429,6 +430,21 @@ Delete: Deletes current file"""
         self.TLabel4.configure(background = "#d9d9d9")
         self.File.set(self.org.getCurrent())
         self.preview()
+
+class Extra_preview:
+    def update(self):
+        self.preview.delete(0.0, tk.END)
+        self.preview.insert(0.0, self.files.get())
+    def __init__(self, files,top=None):
+        top.title("Preview")
+        self.files = files
+        self.preview = Text(top, wrap = 'none')
+        top.attributes("-topmost", True)
+
+        self.preview.place(relx = .05, rely = .05, relwidth = .9, relheight = .9)
+        
+        self.preview.insert(0.0, files.get())
+
 
 # The following code is added to facilitate the Scrolled widgets you specified.
 class AutoScroll(object):

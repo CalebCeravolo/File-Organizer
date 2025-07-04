@@ -28,6 +28,17 @@ class sorter:
         self.match_num = len(self.matches)
         if (self.index>=self.match_num):
             self.index=0
+    def surrounding_files(self, number):
+        list = ""
+        for i in range(self.index-number,self.index+number+1):
+            if (i>=self.match_num):
+                i-=self.match_num
+            elif (i<=self.match_num*-1):
+                i+=self.match_num
+            if (i==self.index):
+                list = f"{list}\n{self.matches[i]} (current)"
+            else: list = f"{list}\n{self.matches[i]}"
+        return list
     def ifin(self, string, ins):
         for word in ins:
             if (word in string):
