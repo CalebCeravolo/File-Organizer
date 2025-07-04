@@ -24,7 +24,7 @@ def main(*args):
     ind = _location.find("\\")
     ind = _location.find("\\", ind+1)
     ind = _location.find("\\", ind+1)
-    starting_dir = _location[0:ind]
+    starting_dir = _location[0:ind+1]
     
     '''Main entry point for the application.'''
     global root
@@ -50,7 +50,3 @@ def save_and_proceed(*args):
 
 if __name__ == '__main__':
     Org.start_up()
-
-
-
-

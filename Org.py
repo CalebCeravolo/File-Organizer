@@ -55,6 +55,7 @@ class OpenPage:
         if (len(dest)>0):   self.org.change_dest(dest)
         self.org.update()
         self.other.preview()
+        self.top.destroy()
         
     def __init__(self, org, other, top=None):
         '''This class configures and populates the toplevel window.
@@ -150,6 +151,12 @@ class Toplevel1:
         self.currentS.set(self.org.path)
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
+        if (os.path.isdir(file_name)):
+            for i, file in enumerate(self.org.get_children()):
+                self.Preview.insert(i+.0, f"{file}\n")
+                if (i==self.vars["Number of subfiles shown (for directories)"]):
+                    break
+        
         try:
             with open(file_name, "r") as f:
                 content = f.read()
@@ -197,6 +204,12 @@ class Toplevel1:
     def open_settings(self, *args):
         top1 = tk.Toplevel(self.top)
         self.Settings = Settings_window(self.vars, self,top=top1)
+    def move_into_current(self, *args):
+        self.org.move_into()
+        self.preview()
+    def move_back(self, *args):
+        self.org.move_back()
+        self.preview()
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -210,7 +223,10 @@ class Toplevel1:
         top.configure(highlightcolor="#000000")
         show_num_pages = 5
         show_num_characters = 100
-        self.vars = {"Number of pages shown (pdf)" : show_num_pages, "Number of characters shown (plain text)" : show_num_characters}
+        show_num_files = 20
+        self.vars = {"Number of pages shown (pdf)" : show_num_pages, 
+                     "Number of characters shown (plain text)" : show_num_characters,
+                     "Number of subfiles shown (for directories)" : show_num_files}
         self.top = top
         self.File = tk.StringVar()
         self.org = org
@@ -299,7 +315,14 @@ class Toplevel1:
         self.Back.configure(text='''Back''')
         self.Back.configure(command = self.back)
 
-        self.ChangeDir = tk.Button(self.top)
+        self.Enter = Button(self.top)
+        self.Enter.configure(command = self.move_into_current, text = "Move into current")
+
+        self.Move_back = Button(self.top)
+        self.Move_back.configure(command = self.move_back, text = "Move into previous directory")
+        
+
+        self.ChangeDir = Button(self.top)
         self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
         positions = linspace(.01, .35, 6)
@@ -310,10 +333,11 @@ class Toplevel1:
         self.NewFolder.place(relx=positions[3], rely=0.537, height=26, width=width)
         self.Moveto.place(relx=positions[2], rely=0.537, height=26, width=width)
         self.Back.place(relx=positions[0], rely=0.537, height=26, width=width)
-        self.ChangeDir.place(relx = .15, rely=.47, width = width*1.75)
-
+        self.ChangeDir.place(relx = positions[0], rely=.47, width = width*2)
+        self.Enter.place(relx = positions[2], rely = .47, height = 26, width=width*2)
+        self.Move_back.place(relx = positions[4], rely = .47, height = 26, width=width*2.5)
         helpMessage = """Welcome! 
-The organizer is defaulted to operate within C:\\Users\\\{name\}, go to change directorys to change this. Change directories can take an absolute or relative path to either one.
+The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path.
 
 The buttons (Scroll to see all of them):
 
