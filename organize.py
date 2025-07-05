@@ -1,6 +1,9 @@
 import os
 import shutil
-
+_location = os.path.dirname(__file__)
+test = _location[:3]
+if ("\\" in test): delim = "\\"
+else: delim = "/"
 class sorter:
     def __init__(self, path=None, pathto=None):
         self.path = path
@@ -51,10 +54,10 @@ class sorter:
         self.update()
     def move_back(self):
         index=0
-        if (self.path.endswith("\\")):
+        if (self.path.endswith(delim)):
             self.path = self.path[:-1]
         for i, char in enumerate(self.path):
-            if (char=="\\"): index = i
+            if (char==delim): index = i
         last = self.path[index+1:]
         self.path=self.path[0:index+1]
         self.update()
@@ -65,17 +68,17 @@ class sorter:
         return os.path.join(self.path, self.matches[self.index])
     def change_source(self, new_path):
         self.last_dir = self.path
-        if ("c:" in new_path.lower()):
+        if ("c:" in new_path.lower() or new_path.startswith(delim)):
             if (os.path.isdir(new_path)):
-                self.path = f"{new_path}\\"
+                self.path = f"{new_path}{delim}"
         else: 
             path = os.path.join(self.path, new_path)
             if (os.path.isdir(path)):
-                self.path = f"{path}\\"
+                self.path = f"{path}{delim}"
         
 
     def change_dest(self, new_dest):
-        if ("c:" in new_dest.lower()):
+        if ("c:" in new_dest.lower() or new_dest.startswith(delim)):
             if (os.is_dir(new_dest)):
                 self.pathto = new_dest
         else: 

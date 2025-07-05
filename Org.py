@@ -19,9 +19,12 @@ from PIL import (Image as Img, ImageTk)
 import PyPDF2
 from pdf2image import convert_from_path
 _location = os.path.dirname(__file__)
-ind = _location.find("\\")
-ind = _location.find("\\", ind+1)
-ind = _location.find("\\", ind+1)
+test = _location[:3]
+if ("\\" in test): delim = "\\"
+else: delim = "/"
+ind = _location.find(delim)
+ind = _location.find(delim, ind+1)
+ind = _location.find(delim, ind+1)
 starting_dir = _location[0:ind]
 from numpy import linspace
 import Organize_support
@@ -309,7 +312,6 @@ class Toplevel1:
         self.Back.configure(font="-family {Segoe UI} -size 9")
         self.Back.configure(foreground="#000000")
         self.Back.configure(highlightbackground="#d9d9d9")
-        self.Back.configure(highlightcolor="#000000")
         self.Back.configure(text='''Back''')
         self.Back.configure(command = self.back)
 
@@ -325,6 +327,9 @@ class Toplevel1:
 
         self.Extra_preview = Button(self.top)
         self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
+        self.Extra_preview.configure(background="#d9d9d9")
+        self.Extra_preview.configure(foreground="#020968")
+
         positions = linspace(.01, .35, 6)
         width = 67
         self.Next.place(relx=positions[1], rely=0.537, height=26, width=width)
@@ -594,7 +599,3 @@ def start_up():
 
 if __name__ == '__main__':
     Organize_support.main()
-
-
-
-
