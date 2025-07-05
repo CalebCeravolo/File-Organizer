@@ -79,11 +79,11 @@ class sorter:
 
     def change_dest(self, new_dest):
         if ("c:" in new_dest.lower() or new_dest.startswith(delim)):
-            if (os.is_dir(new_dest)):
+            if (os.path.isdir(new_dest)):
                 self.pathto = new_dest
         else: 
             path = os.path.join(self.pathto, new_dest)
-            if (os.is_dir(path)):
+            if (os.path.isdir(path)):
                 self.pathto = path
     def printCurrent(self):
         file=self.matches[self.index]
@@ -104,14 +104,14 @@ class sorter:
             os.startfile(file)
         elif ("moveto" in ans):
             dest = ans[7:]
-            if ("C\\" in dest):
+            if ("c:\\" in dest.lower() or dest.startswith(delim)):
                 shutil.move(file, dest)
             else:
                 shutil.move(file, os.path.join(self.pathto, dest))
             self.update()
         elif ("newfolder" in ans):
             folder_name = ans[10:]
-            if ("C\\" in folder_name):
+            if ("c:\\" in folder_name):
                 os.makedirs(folder_name)
                 shutil.move(file, folder_name)
             else:
