@@ -1,6 +1,13 @@
 import os
 import shutil
+import re
 _location = os.path.dirname(__file__)
+trash = os.path.join(_location, "trash")
+try:
+    os.mkdir(trash)
+except FileExistsError:
+    pass
+
 test = _location[:3]
 if ("\\" in test): delim = "\\"
 else: delim = "/"
@@ -9,39 +16,41 @@ class sorter:
         self.path = path
         self.pathto = pathto
         self.files = os.listdir(path)
-        self.matches = []
-        for file in self.files:
-            # filec=os.path.join(self.path, file)
-            # if (os.path.isfile(filec)):
-                self.matches.append(file)
-        self.match_num = len(self.matches)
+        self.match_num = len(self.files)
         self.index=0
         self.last_dir = path
         
     # def __init__(self):
     #     self.path = "C:\\Users\\caleb\\Downloads"
     #     self.pathto = "C:\\Users\\caleb\\Downloads\\Homework"
-    def update(self):
-        self.matches = []
-        self.files = os.listdir(self.path)
+    def regex(self, pattern):
+        pat = re.compile(pattern)
+        matches = []
         for file in self.files:
-            # filec=os.path.join(self.path, file)
-            # if (os.path.isfile(filec)):
-                self.matches.append(file)
-        self.match_num = len(self.matches)
-        if (self.index>=self.match_num):
+            result = pat.fullmatch(file)
+            try:
+                matches.append(result.group(0))
+            except:
+                pass
+        return matches
+    # print(matches)
+    def update(self):
+        self.files = os.listdir(self.path)
+        self.match_num = len(self.files)
+        if (abs(self.index)>=self.match_num):
             self.index=0
     def surrounding_files(self, number):
         list = ""
-        for i in range(self.index-number,self.index+number+1):
-            if (i>=self.match_num):
-                i-=self.match_num
-            elif (i<=self.match_num*-1):
-                i+=self.match_num
-            if (i==self.index):
-                list = f"{list}\n{self.matches[i]} (current)"
-            else: list = f"{list}\n{self.matches[i]}"
-        return list
+        if (self.match_num):
+            for i in range(self.index-min(number, int(self.match_num/2)),self.index+min(number, int(self.match_num/2)+1)):
+                if (i>=self.match_num):
+                    i-=self.match_num
+                elif (i<=self.match_num*-1):
+                    i+=self.match_num
+                if (i==self.index):
+                    list = f"{list}\n{self.files[i]} (current)"
+                else: list = f"{list}\n{self.files[i]}"
+            return list
     def ifin(self, string, ins):
         for word in ins:
             if (word in string):
@@ -65,7 +74,7 @@ class sorter:
     def get_children(self):
         return os.listdir(self.full_path())
     def full_path(self):
-        return os.path.join(self.path, self.matches[self.index])
+        return os.path.join(self.path, self.files[self.index])
     def change_source(self, new_path):
         self.last_dir = self.path
         if ("c:" in new_path.lower() or new_path.startswith(delim)):
@@ -86,14 +95,14 @@ class sorter:
             if (os.path.isdir(path)):
                 self.pathto = path
     def printCurrent(self):
-        file=self.matches[self.index]
+        file=self.files[self.index]
         print(f"File: {file}")
     def getCurrent(self):
-        return self.matches[self.index]
+        return self.files[self.index]
     def back(self):
         self.index-=1
     def run(self, ans):
-        file=os.path.join(self.path, self.matches[self.index])
+        file=os.path.join(self.path, self.files[self.index])
         if(self.ifin(ans, ["help", "Help"])):
             print("____________________\n")
             print("open: Opens file \nbreak: quits from program\nmoveto [dest]: moves file to dest if dest is within defined pathto")
@@ -120,7 +129,7 @@ class sorter:
                 shutil.move(file, folder_full)
             self.update()
         elif ("remove" in ans):
-            os.remove(file)  
+            shutil.move(file, trash) 
             self.update()
         else: self.index+=1
         if (abs(self.index)>=self.match_num):
@@ -165,5 +174,3 @@ if __name__ == "__main__":
     #             print(f"Moving {file} to {dest}")
     #     except:
     #         pass
-
-

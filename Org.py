@@ -10,14 +10,12 @@ import tkinter as tk
 from tkinter.constants import *
 import os.path
 from tkinter.scrolledtext import ScrolledText
-from tkinter.simpledialog import SimpleDialog
-from organize import sorter
 from tkinter import *
 from tkinter import ttk
-from tkinter import messagebox
 from PIL import (Image as Img, ImageTk)
 import PyPDF2
-from pdf2image import convert_from_path
+from shutil import move, rmtree
+from organize import trash
 _location = os.path.dirname(__file__)
 test = _location[:3]
 if ("\\" in test): delim = "\\"
@@ -28,13 +26,13 @@ ind = _location.find(delim, ind+1)
 starting_dir = _location[0:ind]
 from numpy import linspace
 import Organize_support
-_bgcolor = '#d9d9d9'
-_fgcolor = '#000000'
-_tabfg1 = 'black' 
-_tabfg2 = 'white' 
-_bgmode = 'light' 
-_tabbg1 = '#d9d9d9' 
-_tabbg2 = 'gray40' 
+# _bgcolor = '#d9d9d9'
+# _fgcolor = '#000000'
+# _tabfg1 = 'black' 
+# _tabfg2 = 'white' 
+# _bgmode = 'light' 
+# _tabbg1 = '#d9d9d9' 
+# _tabbg2 = 'gray40' 
 
 _style_code_ran = 0
 def _style_code():
@@ -123,7 +121,6 @@ class OpenPage:
         self.Confirm.configure(highlightbackground="#d9d9d9")
         self.Confirm.configure(highlightcolor="#000000")
         self.Confirm.configure(text='''Confirm''')
-        
 
 class Toplevel1:
     def openf(self, *args):
@@ -135,7 +132,12 @@ class Toplevel1:
     def moveto(self, *args):
         self.org.run(f"moveto {self.entry.get()}")
         self.preview()
-
+    def regex(self, *args):
+        pattern = self.entry.get()
+        matches = self.org.regex(pattern)
+        top1 = tk.Toplevel(self.top)
+        new= Regex_window(matches, "Matches", self,top1)
+        self.updates.append(new)
     def newfolder(self, *args):
         self.org.run(f"newfolder {self.entry.get()}")
         self.preview()
@@ -149,6 +151,7 @@ class Toplevel1:
         self.org.run(" ")
         self.preview()
     def preview(self, *args):
+        self.org.update()
         file_name = self.org.full_path()
         self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
         self.currentD.set(self.org.pathto)
@@ -156,7 +159,9 @@ class Toplevel1:
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
         for object in self.updates:
-            object.update()
+            if (object.top.winfo_exists()):
+                object.update()
+            else: self.updates.remove(object)
         if (os.path.isdir(file_name)):
             for i, file in enumerate(self.org.get_children()):
                 self.Preview.insert(i+.0, f"{file}\n")
@@ -170,7 +175,7 @@ class Toplevel1:
         except:
             pass
 
-        #self.Preview.lift(aboveThis=self.PictureFrame)
+
         try:
             self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
             image = Img.open(self.org.full_path())
@@ -207,7 +212,7 @@ class Toplevel1:
         self.preview()
     def open_preview(self, *args):
         top1 = tk.Toplevel(self.top)
-        other_preview = Extra_preview(self.Surrounding, top1)
+        other_preview = Extra_preview(self.Surrounding,"Neighboring files", top1)
         self.updates.append(other_preview)
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
@@ -233,6 +238,7 @@ class Toplevel1:
         self.File = tk.StringVar()
         self.org = org
         self.Surrounding = StringVar()
+        self.Regex_answers = StringVar()
         self.entry = tk.StringVar()
         self.currentS=tk.StringVar()
         self.currentD = tk.StringVar()
@@ -240,89 +246,60 @@ class Toplevel1:
         
         self.menubar = Menu(self.top)
         self.top.config(menu = self.menubar)
-        self.Settings = Menu(self.menubar, tearoff=False)
-        self.Settings.add_command(label='Settings',command=self.open_settings)
-        self.menubar.add_cascade(label="File",menu=self.Settings)
+        self.File_menu = Menu(self.menubar, tearoff=False)
+        self.File_menu.add_command(label='Settings',command=self.open_settings)
+        self.Additional_options = Menu(self.menubar, tearoff = False)
+        self.Additional_options.add_command(label="New Folder",command=self.newfolder)
+        self.Additional_options.add_command(label="Open",command=self.openf)
+        self.menubar.add_cascade(label="Menu",menu=self.File_menu)
+        self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
 
-        self.Open = tk.Button(self.top)
-        self.Open.configure(activebackground="#d9d9d9")
-        self.Open.configure(activeforeground="black")
-        self.Open.configure(background="#d9d9d9")
-        self.Open.configure(disabledforeground="#a3a3a3")
-        self.Open.configure(font="-family {Segoe UI} -size 9")
-        self.Open.configure(foreground="#000000")
-        self.Open.configure(highlightbackground="#d9d9d9")
-        self.Open.configure(highlightcolor="#000000")
-        self.Open.configure(text='''Open''')
-        self.Open.configure(command = self.openf)
+        # self.Open = tk.Button(self.top)
+        # self.Open.configure(activebackground="#d9d9d9")
+        # self.Open.configure(activeforeground="black")
+        # self.Open.configure(background="#d9d9d9")
+        # self.Open.configure(disabledforeground="#a3a3a3")
+        # self.Open.configure(font="-family {Segoe UI} -size 9")
+        # self.Open.configure(foreground="#000000")
+        # self.Open.configure(highlightbackground="#d9d9d9")
+        # self.Open.configure(highlightcolor="#000000")
+        # self.Open.configure(text='''Open''')
+        # self.Open.configure(command = self.openf)
+        self.RegexB = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.RegexB.configure(text='''Regex''')
+        self.RegexB.configure(command = self.regex)
 
         self.Delete = tk.Button(self.top)
         self.Delete.configure(activebackground="#d9d9d9")
         self.Delete.configure(activeforeground="black")
         self.Delete.configure(background="#d9d9d9")
         self.Delete.configure(disabledforeground="#a3a3a3")
-        self.Delete.configure(font="-family {Segoe UI} -size 9")
-        self.Delete.configure(foreground="#000000")
-        self.Delete.configure(highlightbackground="#d9d9d9")
-        self.Delete.configure(highlightcolor="#000000")
         self.Delete.configure(text='''Delete''')
         self.Delete.configure(command = self.delete)
 
-        self.NewFolder = tk.Button(self.top)
-        self.NewFolder.configure(activebackground="#d9d9d9")
-        self.NewFolder.configure(activeforeground="black")
-        self.NewFolder.configure(background="#d9d9d9")
-        self.NewFolder.configure(disabledforeground="#a3a3a3")
-        self.NewFolder.configure(font="-family {Segoe UI} -size 9")
-        self.NewFolder.configure(foreground="#000000")
-        self.NewFolder.configure(highlightbackground="#d9d9d9")
-        self.NewFolder.configure(highlightcolor="#000000")
-        self.NewFolder.configure(text='''New Folder''')
-        self.NewFolder.configure(command = self.newfolder)
+        
 
-        self.Moveto = tk.Button(self.top)
-        self.Moveto.configure(activebackground="#d9d9d9")
-        self.Moveto.configure(activeforeground="black")
-        self.Moveto.configure(background="#d9d9d9")
-        self.Moveto.configure(disabledforeground="#a3a3a3")
-        self.Moveto.configure(font="-family {Segoe UI} -size 9")
-        self.Moveto.configure(foreground="#000000")
-        self.Moveto.configure(highlightbackground="#d9d9d9")
-        self.Moveto.configure(highlightcolor="#000000")
+        self.Moveto = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Moveto.configure(text='''Move to''')
         self.Moveto.configure(command = self.moveto)
-        self.Back = tk.Button(self.top)
         
-        self.Next = tk.Button(self.top)
-        self.Next.configure(activebackground="#d9d9d9")
-        self.Next.configure(activeforeground="black")
-        self.Next.configure(background="#d9d9d9")
-        self.Next.configure(disabledforeground="#a3a3a3")
-        self.Next.configure(font="-family {Segoe UI} -size 9")
-        self.Next.configure(foreground="#000000")
-        self.Next.configure(highlightbackground="#d9d9d9")
-        self.Next.configure(highlightcolor="#000000")
+        
+        self.Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Next.configure(text='''Next''')
         self.Next.configure(command = self.next)
 
-        self.Back.configure(activebackground="#d9d9d9")
-        self.Back.configure(activeforeground="black")
-        self.Back.configure(background="#d9d9d9")
-        self.Back.configure(disabledforeground="#a3a3a3")
-        self.Back.configure(font="-family {Segoe UI} -size 9")
-        self.Back.configure(foreground="#000000")
-        self.Back.configure(highlightbackground="#d9d9d9")
+        self.Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Back.configure(text='''Back''')
         self.Back.configure(command = self.back)
 
-        self.Enter = Button(self.top)
+        self.Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Enter.configure(command = self.move_into_current, text = "Move into current")
 
-        self.Move_back = Button(self.top)
-        self.Move_back.configure(command = self.move_back, text = "Move into previous directory")
+        self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Move_back.configure(command = self.move_back, text = "Move into previous")
         
 
-        self.ChangeDir = Button(self.top)
+        self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
         self.Extra_preview = Button(self.top)
@@ -330,17 +307,20 @@ class Toplevel1:
         self.Extra_preview.configure(background="#d9d9d9")
         self.Extra_preview.configure(foreground="#020968")
 
-        positions = linspace(.01, .35, 6)
+        positions = linspace(.03, .35, 5)
+        positions2 = linspace(.01, .29, 3)
         width = 67
         self.Next.place(relx=positions[1], rely=0.537, height=26, width=width)
-        self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
-        self.Delete.place(relx=positions[4], rely=0.537, height=26, width=width)
-        self.NewFolder.place(relx=positions[3], rely=0.537, height=26, width=width)
+        #self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
+        self.Delete.place(relx=positions[3], rely=0.537, height=26, width=width)
+        self.RegexB.place(relx=positions[4], rely=0.537, height=26, width=width)
         self.Moveto.place(relx=positions[2], rely=0.537, height=26, width=width)
         self.Back.place(relx=positions[0], rely=0.537, height=26, width=width)
-        self.ChangeDir.place(relx = positions[0], rely=.47, width = width*2)
-        self.Enter.place(relx = positions[2], rely = .47, height = 26, width=width*2)
-        self.Move_back.place(relx = positions[4], rely = .47, height = 26, width=width*2.5)
+
+        p2height = .46
+        self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
+        self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
+        self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
         self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         helpMessage = """Welcome! 
 The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path.
@@ -390,21 +370,21 @@ Delete: Deletes current file"""
         self.PictureFrame.configure(activeforeground="black")
         
         self.currentSource = tk.Label(self.top)
-        self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory = ")
+        self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
         self.labelSource = tk.Label(self.top)
         self.labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
 
         self.currentDest = tk.Label(self.top)
-        self.currentDest.configure(background="#d9d9d9", text = "Current Target Directory = ")
+        self.currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
         self.labelDest = tk.Label(self.top)
         self.labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
         
-        xpos_labels = .15
+        xpos_labels = .01
         ystart_labels = .15
-        self.currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "e")
-        self.currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "e")
-        self.labelSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
-        self.labelDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
+        self.currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
+        self.currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
+        self.labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
+        self.labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
         
         self.TLabel3 = ttk.Label(self.top)
         self.TLabel3.place(relx=0.007, rely=0.071, height=20, width=29)
@@ -417,7 +397,7 @@ Delete: Deletes current file"""
         self.TLabel3.configure(background = "#d9d9d9")
 
         self.TEntry2 = ttk.Entry(self.top)
-        self.TEntry2.place(relx=0.076, rely=0.611, relheight=0.032
+        self.TEntry2.place(relx=0.076, rely=0.611, height = 24
                 , relwidth=0.25)
         self.TEntry2.configure(takefocus="")
         self.TEntry2.configure(cursor="ibeam")
@@ -438,20 +418,114 @@ Delete: Deletes current file"""
 
 class Extra_preview:
     def update(self):
+        if (isinstance(self.files, StringVar)):
+            text = self.files.get()
+        elif (isinstance(self.files, list)):
+            text = ""
+            for item in self.files:
+                text = f"{text}\n{item}"
+        else: text = "Can't show that :("
         self.preview.delete(0.0, tk.END)
-        self.preview.insert(0.0, self.files.get())
-    def __init__(self, files,top=None):
-        top.title("Preview")
+        self.preview.insert(0.0, text)
+            
+    def __init__(self, files,name,top):
+        self.top = top
+        top.title(name)
         self.files = files
         self.preview = Text(top, wrap = 'none')
         top.attributes("-topmost", True)
 
         self.preview.place(relx = .05, rely = .05, relwidth = .9, relheight = .9)
+        if (isinstance(self.files, StringVar)):
+            text = self.files.get()
+        elif (isinstance(self.files, list)):
+            text = ""
+            for item in self.files:
+                text = f"{text}\n{item}"
+        else: text = "Can't show that :("
+        self.preview.insert(1.0, text)
+
+class Regex_window:
+    def move_all(self):
+        dest = self.commandline.get()
+        files = self.preview.get(0.0, tk.END).splitlines()
+        path = self.master.org.path
+        pathto = self.master.org.pathto
+        if ("c:\\" in dest.lower() or dest.startswith(delim)):
+            for file in files:
+                if (len(file)):
+                    move(os.path.join(path,file), dest)
+        else:
+            for file in files:
+                if (len(file)):
+                    move(os.path.join(path,file), os.path.join(pathto, dest))
+        self.preview.delete(0.0, tk.END)
+        self.master.preview()
+    def delete_all(self):
+        files = self.preview.get(0.0, tk.END).splitlines()
+        path = self.master.org.path
+        for file in files:
+            if (len(file)):
+                file_full = os.path.join(path, file)
+                move(file_full, trash)
+                    
+        self.master.preview()
         
-        self.preview.insert(0.0, files.get())
+    def update(self):
+        if (isinstance(self.files, StringVar)):
+            text = self.files.get()
+        elif (isinstance(self.files, list)):
+            text = ""
+            for item in self.files:
+                text = f"{text}\n{item}"
+        else: text = "Can't show that :("
+        self.preview.delete(0.0, tk.END)
+        self.preview.insert(0.0, text)
+            
+    def __init__(self, files ,name,master,top=None):
+        self.top = top
+        self.master = master
+        top.title(name)
+        self.files = files
+        self.preview = Text(top, wrap = 'none')
+        top.attributes("-topmost", True)
+        self.menubar = Menu(top)
+        top.config(menu = self.menubar)
 
+        self.preview.place(relx = .05, rely = .05, relwidth = .9, relheight = .7)
+        
+        if (isinstance(self.files, StringVar)):
+            text = self.files.get()
+        elif (isinstance(self.files, list)):
+            text = ""
+            for item in self.files:
+                text = f"{text}\n{item}"
+        else: text = "Can't show that :("
+        self.preview.insert(1.0, text)
+        self.Additional_options = Menu(self.menubar, tearoff = False)
+        self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
+        self.entry = StringVar()
+        self.commandline = ttk.Entry(top)
+        self.commandline.place(relx=.41, rely=.9, relwidth=0.8, anchor = "w")
+        self.commandline.configure(textvariable = self.entry)
 
-# The following code is added to facilitate the Scrolled widgets you specified.
+        self.Delete = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
+        self.Delete.configure(disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 9", foreground="#000000")
+        self.Delete.configure(highlightbackground="#d9d9d9", highlightcolor="#000000")
+        self.Delete.configure(text='''Delete All''')
+        self.Delete.configure(command = self.delete_all)
+
+        self.Moveto = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
+        self.Moveto.configure(disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 9", foreground="#000000")
+        self.Moveto.configure(highlightbackground="#d9d9d9", highlightcolor="#000000")
+        self.Moveto.configure(text='''Move All To''')
+        self.Moveto.configure(command = self.move_all)
+        self.Back = tk.Button(top)
+
+        self.Delete.place(relx = .1, rely = .9, anchor = "w")
+        self.Moveto.place(relx = .4, rely = .9, anchor = "e")
+
+# The following code is added to facilitate the Scrolled widgets
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
     def __init__(self, master):
