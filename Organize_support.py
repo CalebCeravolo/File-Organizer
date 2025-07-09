@@ -9,8 +9,8 @@ from os import chdir
 import sys
 base_dir = path.dirname(path.abspath(__file__))
 _location = base_dir
-chdir(base_dir)
-sys.path.append(path.join(base_dir, "utils"))
+# chdir(base_dir)
+# sys.path.append(path.join(base_dir, "utils"))
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter.constants import *
