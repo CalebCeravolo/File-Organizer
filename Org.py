@@ -1,7 +1,6 @@
 # Application to sort through apps. Can delete, or move each file. Has a file previewer which can display
 # text from a pdf, any plain text document, or images that PIL can read
 
-import sys
 import tkinter as tk
 from tkinter.constants import *
 import os.path
@@ -12,30 +11,16 @@ from PIL import (Image as Img, ImageTk)
 import PyPDF2
 from shutil import move
 from organize import trash
-_location = os.path.dirname(__file__)
+_location = os.path.expanduser("~")
 test = _location[:3]
 if ("\\" in test): delim = "\\"
 else: delim = "/"
-ind = _location.find(delim)
-ind = _location.find(delim, ind+1)
-ind = _location.find(delim, ind+1)
-starting_dir = _location[0:ind]
+# ind = _location.find(delim)
+# ind = _location.find(delim, ind+1)
+# ind = _location.find(delim, ind+1)
+starting_dir = _location
 from numpy import linspace
 import Organize_support
-
-_style_code_ran = 0
-def _style_code():
-    global _style_code_ran
-    if _style_code_ran: return        
-    try: Organize_support.root.tk.call('source',
-                os.path.join(_location, 'themes', 'default.tcl'))
-    except: pass
-    style = ttk.Style()
-    style.theme_use('default')
-    style.configure('.', font = "TkDefaultFont")
-    if sys.platform == "win32":
-       style.theme_use('winnative')    
-    _style_code_ran = 1
 
 class OpenPage:
     def save_and_proceed(self, *args):
@@ -66,7 +51,6 @@ class OpenPage:
         self.source = tk.StringVar()
         self.dest = tk.StringVar()
 
-        _style_code()
         self.TLabel2 = ttk.Label(self.top)
         self.TLabel2.place(relx=0.340, rely=0.443, height=20, width=93, anchor = 'e')
         self.TLabel2.configure(font="-family {Segoe UI} -size 9")
@@ -178,8 +162,6 @@ class Toplevel1:
                 self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
         except:
             pass
-
-
         try:
             self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
             image = Img.open(self.org.full_path())
@@ -216,8 +198,12 @@ class Toplevel1:
         self.preview()
     def open_preview(self, *args):
         top1 = tk.Toplevel(self.top)
-        other_preview = Extra_preview(self.Surrounding,"Neighboring files", top1)
+        other_preview = Extra_preview(self.Surrounding,"Neighboring files", 'none',top1)
         self.updates.append(other_preview)
+    def help_message(self, *args):
+        print(*args)
+        top1 = tk.Toplevel(self.top)
+        Extra_preview(self.helpMessage, "Help", "word",top1)
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -246,7 +232,7 @@ class Toplevel1:
         self.entry = tk.StringVar()
         self.currentS=tk.StringVar()
         self.currentD = tk.StringVar()
-
+        
         
         self.menubar = Menu(self.top)
         self.top.config(menu = self.menubar)
@@ -257,18 +243,9 @@ class Toplevel1:
         self.Additional_options.add_command(label="Open",command=self.openf)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
+        self.menubar.add_command(label = "Help", command=self.help_message)
 
-        # self.Open = tk.Button(self.top)
-        # self.Open.configure(activebackground="#d9d9d9")
-        # self.Open.configure(activeforeground="black")
-        # self.Open.configure(background="#d9d9d9")
-        # self.Open.configure(disabledforeground="#a3a3a3")
-        # self.Open.configure(font="-family {Segoe UI} -size 9")
-        # self.Open.configure(foreground="#000000")
-        # self.Open.configure(highlightbackground="#d9d9d9")
-        # self.Open.configure(highlightcolor="#000000")
-        # self.Open.configure(text='''Open''')
-        # self.Open.configure(command = self.openf)
+        
         self.RegexB = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.RegexB.configure(text='''Regex''')
         self.RegexB.configure(command = self.regex)
@@ -309,7 +286,8 @@ class Toplevel1:
         self.Extra_preview = Button(self.top)
         self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
         self.Extra_preview.configure(background="#d9d9d9")
-        self.Extra_preview.configure(foreground="#020968")
+        self.Extra_preview.configure(foreground="#000000")
+        self.Extra_preview.configure(activebackground = "#d9d9d9")
 
        
 
@@ -328,34 +306,41 @@ class Toplevel1:
         self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
         self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
         self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
-        helpMessage = """Welcome! 
-The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path.
+        self.helpMessage = """Welcome! 
+___________________
+The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path. Relative paths are relative to target directory
+___________________
+Most buttons take arguments from the command line input. Type into the box and then press the desired button
+___________________
 
-The buttons (Scroll to see all of them):
 
-Open: Opens the current file
+The buttons:
+___________________
+Change Directories: Opens Change directories window. Used to change source or target directory. Takes relative or absolute path
+___________________
+Move into current/previous: Sets source directory into the current viewed directory or to one less than current source path
+___________________
+Move To [dest]: Moves file to destination directory typed in command line
+___________________
+New Folder [name]: Creates new folder in directory specified in the command line input and moves current file into it
+___________________
+Delete: Moves current file to Trash folder
+___________________
+Regex: Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
+"""
+        # self.Text2 = tk.Text(self.top)
+        # self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
+        # self.Text2.configure(background="#d9d9d9")
+        # self.Text2.configure(font="TkTextFont")
+        # self.Text2.configure(foreground="black")
+        # self.Text2.configure(highlightbackground="#43f0fe")
+        # self.Text2.configure(highlightcolor="#000000")
+        # self.Text2.configure(insertbackground="#000000")
+        # self.Text2.configure(selectbackground="#d9d9d9")
+        # self.Text2.configure(selectforeground="black")
+        # self.Text2.configure(wrap="word")
+        # self.Text2.insert(1.0, helpMessage)
 
-Move To [dest]: moves file to destination typed in entry box above (Moves to directory relative to target directory)
-
-New Folder [name]: Creates new file in directory specified in above textbox. The final argument dictates name of new directory
-
-Delete: Deletes current file"""
-        self.Text2 = tk.Text(self.top)
-        self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
-        self.Text2.configure(background="#d9d9d9")
-        self.Text2.configure(font="TkTextFont")
-        self.Text2.configure(foreground="black")
-        self.Text2.configure(highlightbackground="#43f0fe")
-        self.Text2.configure(highlightcolor="#000000")
-        self.Text2.configure(insertbackground="#000000")
-        self.Text2.configure(selectbackground="#d9d9d9")
-        self.Text2.configure(selectforeground="black")
-        self.Text2.configure(wrap="word")
-        self.Text2.insert(1.0, helpMessage)
-
-       
-
-        _style_code()
         self.Preview = ScrolledText(self.top)
         self.Preview.place(relx=0.425, rely=0.015, relheight=0.949
                 , relwidth=0.558)
@@ -434,15 +419,19 @@ class Extra_preview:
             text = ""
             for item in self.files:
                 text = f"{text}\n{item}"
+        elif (isinstance(self.files, str)):
+            text = self.files
         else: text = "Can't show that :("
+            
         self.preview.delete(0.0, tk.END)
         self.preview.insert(0.0, text)
             
-    def __init__(self, files,name,top):
+    def __init__(self, files,name, wrap,top):
+        top.geometry("500x800+104+30")
         self.top = top
         top.title(name)
         self.files = files
-        self.preview = Text(top, wrap = 'none')
+        self.preview = Text(top, wrap = wrap)
         top.attributes("-topmost", True)
 
         self.preview.place(relx = .01, rely = 0.01, relwidth = .98, relheight = .98)
@@ -452,6 +441,8 @@ class Extra_preview:
             text = ""
             for item in self.files:
                 text = f"{text}\n{item}"
+        elif (isinstance(self.files, str)):
+            text = self.files
         else: text = "Can't show that :("
         self.preview.insert(0.0, text)
 
@@ -486,6 +477,22 @@ Regex help:
 When deleting all or moving all, the program looks
 at what is left in the message box. Thus, delete any 
 files from the textbox that you don't want to affect
+
+Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
+ .  : Matches any character
+ \  : Escape character. Place before a special character (like .) to match the character and not use its function
+ ^  : Matches start of string
+ $  : Matches end of string
+ *  : Matches 0 or more repetitions of the pattern to the left
+ +  : Matches 1 or more repetitionsof the pattern to the left
+ ?  : Matches 0 or 1 repetitions of the pattern to the left
+{m} : Matches m repetitions of pattern to the left
+{m,n} : Matches m to n repetitions of pattern to the left
+
+\d : Matches a digit
+\D : Matches anything but a digit
+\s : Matches whitespace
+\S : Matches anything but whitespace
 """ 
         top1 = tk.Toplevel(self.top)
         message(help, top1)
