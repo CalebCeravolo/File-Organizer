@@ -10,7 +10,6 @@ from tkinter import ttk
 from PIL import (Image as Img, ImageTk)
 import PyPDF2
 from shutil import move
-from organize import trash
 _location = os.path.expanduser("~")
 test = _location[:3]
 if ("\\" in test): delim = "\\"
@@ -26,8 +25,10 @@ class OpenPage:
     def save_and_proceed(self, *args):
         source = self.source.get()
         dest = self.dest.get()
+        trash = self.trash.get()
         if (len(source)>0): self.org.change_source(source)
         if (len(dest)>0):   self.org.change_dest(dest)
+        if (len(trash)>0):  self.org.change_trash(trash)
         self.org.update()
         self.other.preview()
         self.top.destroy()
@@ -50,9 +51,10 @@ class OpenPage:
         self.top = top
         self.source = tk.StringVar()
         self.dest = tk.StringVar()
-
+        self.trash = StringVar()
+        ypos = linspace(.3,.5,3)
         self.TLabel2 = ttk.Label(self.top)
-        self.TLabel2.place(relx=0.340, rely=0.443, height=20, width=93, anchor = 'e')
+        self.TLabel2.place(relx=0.340, rely=ypos[1], height=20, width=93, anchor = 'e')
         self.TLabel2.configure(font="-family {Segoe UI} -size 9")
         self.TLabel2.configure(relief="flat")
         self.TLabel2.configure(justify='left')
@@ -61,14 +63,15 @@ class OpenPage:
         self.TLabel2.configure(background = "#d9d9d9")
 
         self.TEntry1 = ttk.Entry(self.top)
-        self.TEntry1.place(relx=0.346, rely=0.443, relheight=0.042
+        self.TEntry1.place(relx=0.346, rely=ypos[1], relheight=0.042
                 , relwidth=0.247, anchor = 'w')
         self.TEntry1.configure(font="-family {Courier New} -size 10")
         self.TEntry1.configure(textvariable=self.dest)
         self.TEntry1.configure(cursor="ibeam")
 
+        
         self.TLabel1 = ttk.Label(self.top)
-        self.TLabel1.place(relx=0.340, rely=0.377, height=20, width=93, anchor = 'e')
+        self.TLabel1.place(relx=0.340, rely=ypos[0], height=20, width=93, anchor = 'e')
         self.TLabel1.configure(font="-family {Segoe UI} -size 9")
         self.TLabel1.configure(relief="flat")
         self.TLabel1.configure(justify='left')
@@ -77,9 +80,24 @@ class OpenPage:
         self.TLabel1.configure(background = "#d9d9d9")
 
         self.Entry1 = ttk.Entry(self.top)
-        self.Entry1.place(relx=0.346, rely=0.377, height=20, relwidth=0.247, anchor = 'w')
+        self.Entry1.place(relx=0.346, rely=ypos[0], height=20, relwidth=0.247, anchor = 'w')
         self.Entry1.configure(font="-family {Courier New} -size 10")
         self.Entry1.configure(textvariable=self.source)
+        self.Entry1.configure(cursor = "ibeam")
+
+        self.T = ttk.Label(self.top)
+        self.T.place(relx=0.340, rely=ypos[2], height=20, width=93, anchor = 'e')
+        self.T.configure(font="-family {Segoe UI} -size 9")
+        self.T.configure(relief="flat")
+        self.T.configure(justify='left')
+        self.T.configure(text='''Trash Directory''')
+        self.T.configure(compound='left')
+        self.T.configure(background = "#d9d9d9")
+
+        self.Entry1 = ttk.Entry(self.top)
+        self.Entry1.place(relx=0.346, rely=ypos[2], height=20, relwidth=0.247, anchor = 'w')
+        self.Entry1.configure(font="-family {Courier New} -size 10")
+        self.Entry1.configure(textvariable=self.trash)
         self.Entry1.configure(cursor = "ibeam")
 
         # self.TLabel1 = ttk.Label(self.top)
@@ -92,7 +110,7 @@ class OpenPage:
         # self.TLabel1.configure(background = "#d9d9d9")
 
         self.Entry1 = ttk.Entry(self.top)
-        self.Entry1.place(relx=0.346, rely=0.377, height=20, relwidth=0.247, anchor = 'w')
+        self.Entry1.place(relx=0.346, rely=ypos[0], height=20, relwidth=0.247, anchor = 'w')
         self.Entry1.configure(font="-family {Courier New} -size 10")
         self.Entry1.configure(textvariable=self.source)
         self.Entry1.configure(cursor = "ibeam")
@@ -144,6 +162,7 @@ class Toplevel1:
         self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
         self.currentD.set(self.org.pathto)
         self.currentS.set(self.org.path)
+        self.trash_label.config(text = f"Trash location: {self.org.trash}")
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
         for object in self.updates:
@@ -370,7 +389,7 @@ Regex: Returns the files found by a regex search through the current source dire
         self.labelDest = tk.Label(self.top)
         self.labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
         
-        self.trash_label = tk.Label(self.top, text = f"Trash location: {trash}", background = "#d9d9d9")
+        self.trash_label = tk.Label(self.top, text = f"Trash location: {org.trash}", background = "#d9d9d9")
     
 
         xpos_labels = .01
@@ -468,11 +487,11 @@ class Regex_window:
         for file in files:
             if (len(file)):
                 file_full = os.path.join(path, file)
-                move(file_full, trash)
+                move(file_full,self.master.org.trash)
         self.preview.delete(0.0, tk.END)
         self.master.preview()
     def help_menu(self):
-        help = """
+        help = r"""
 Regex help:
 When deleting all or moving all, the program looks
 at what is left in the message box. Thus, delete any 

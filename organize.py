@@ -2,13 +2,7 @@ import os
 import shutil
 import re
 # Creates a trash folder at the location of this file
-_location = os.path.expanduser("~")
-trash = os.path.join(_location, "Trash")
-try:
-    os.mkdir(trash)
-except FileExistsError:
-    pass
-
+_location = os.getcwd()
 test = _location[:3]
 if ("\\" in test): delim = "\\"
 else: delim = "/"
@@ -22,6 +16,11 @@ class sorter:
         self.match_num = len(self.files)
         self.index=0
         self.last_dir = path
+        self.trash = os.path.join(_location, "Trash")
+        try:
+            os.mkdir(self.trash)
+        except FileExistsError:
+            pass
 
     # Used for regex searching, returns all matches of the given regex pattern
     def regex(self, pattern):
@@ -113,7 +112,16 @@ class sorter:
             path = os.path.join(self.pathto, new_dest)
             if (os.path.isdir(path)):
                 self.pathto = path
-
+    def change_trash(self, trash_dest):
+        if ("c:" in trash_dest.lower() or trash_dest.startswith(delim)):
+            if (not os.path.isdir(trash_dest)):
+                os.makedirs(trash_dest)
+            self.trash = trash_dest
+        else: 
+            path = os.path.join(_location, trash_dest)
+            if (not os.path.isdir(path)):
+                os.makedirs(path)
+            self.trash=path
     # Prints current file to the terminal. Useful for debugging
     def printCurrent(self):
         file=self.files[self.index]
@@ -156,7 +164,7 @@ ____________________""")
                 os.makedirs(folder_full)
                 shutil.move(file, folder_full)
         elif ("remove" in ans):
-            shutil.move(file, trash) 
+            shutil.move(file, self.trash) 
         else: self.index+=1
         if (abs(self.index)>=self.match_num):
             self.index = 0
