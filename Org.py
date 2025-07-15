@@ -20,7 +20,8 @@ else: delim = "/"
 starting_dir = _location
 from numpy import linspace
 import Organize_support
-
+from tkinter.messagebox import askyesnocancel
+import shutil
 class OpenPage:
     def save_and_proceed(self, *args):
         source = self.source.get()
@@ -157,6 +158,7 @@ class Toplevel1:
         self.org.run(" ")
         self.preview()
     def preview(self, *args):
+        
         self.org.update()
         file_name = self.org.full_path()
         self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
@@ -223,9 +225,17 @@ class Toplevel1:
         print(*args)
         top1 = tk.Toplevel(self.top)
         Extra_preview(self.helpMessage, "Help", "word",top1)
+    def on_closing(self, *args):
+        ans = askyesnocancel("Quit", "Would you like to delete your trash folder?")
+        if (ans):
+            shutil.rmtree(self.org.trash)
+            self.top.destroy()
+        elif (ans==False):
+            self.top.destroy()
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
+        top.protocol("WM_DELETE_WINDOW", self.on_closing)
         top.geometry("1178x589+104+110")
         top.minsize(120, 1)
         top.maxsize(1444, 881)
