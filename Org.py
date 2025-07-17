@@ -180,7 +180,10 @@ class Toplevel1:
         try:
             with open(file_name, "r") as f:
                 content = f.read()
-                self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
+                if (self.vars["Number of characters shown (plain text)"]==-1):
+                    self.Preview.insert(1.0, content)
+                else:
+                    self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
         except:
             pass
         try:
@@ -222,9 +225,15 @@ class Toplevel1:
         other_preview = Extra_preview(self.Surrounding,"Neighboring files", 'none',top1)
         self.updates.append(other_preview)
     def help_message(self, *args):
-        print(*args)
         top1 = tk.Toplevel(self.top)
         Extra_preview(self.helpMessage, "Help", "word",top1)
+    def overwrite(self, *args):
+        content = self.Preview.get(0.0, tk.END)
+        self.org.save_current(content)
+    def new_file(self, *args):
+        name = self.entry.get()
+        self.org.new_file(name)
+        self.preview()
     def on_closing(self, *args):
         ans = askyesnocancel("Quit", "Would you like to delete your trash folder?")
         if (ans):
@@ -247,7 +256,7 @@ class Toplevel1:
         show_num_pages = 5
         show_num_characters = 2000
         show_num_files = 20
-        show_num_surrounding_files = 5
+        show_num_surrounding_files = 20
         self.vars = {"Number of pages shown (pdf)" : show_num_pages, 
                      "Number of characters shown (plain text)" : show_num_characters,
                      "Number of subfiles shown (for directories)" : show_num_files,
@@ -270,6 +279,8 @@ class Toplevel1:
         self.Additional_options = Menu(self.menubar, tearoff = False)
         self.Additional_options.add_command(label="New Folder",command=self.newfolder)
         self.Additional_options.add_command(label="Open",command=self.openf)
+        self.Additional_options.add_command(label="Save File Contents", command=self.overwrite)
+        self.Additional_options.add_command(label="New File", command = self.new_file)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)

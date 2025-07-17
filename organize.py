@@ -7,6 +7,9 @@ test = _location[:3]
 if ("\\" in test): delim = "\\"
 else: delim = "/"
 
+def rewrite(file, content):
+    with open(file, "w") as f:
+        f.write(content)
 # Class for making a sorter to look through files. Initializes over the files and can be changed to a different set of files
 class sorter:
     def __init__(self, path=None, pathto=None):
@@ -57,7 +60,7 @@ class sorter:
                     list = f"{list}\n{self.files[i]} (current)"
                 else: list = f"{list}\n{self.files[i]}"
             return list
-    
+
     # Local helper function
     def ifin(self, string, ins):
         for word in ins:
@@ -65,6 +68,29 @@ class sorter:
                 return True
         return False
 
+
+    def save_current(self, content):
+        rewrite(self.full_path(), content)
+    def new_file(self, name):
+        j=1
+        ts=name[::-1]
+        ind = ts.find(".")
+        ext=".txt"
+        if (ind!=-1):
+            ext = name[-1*ind-1:]
+            name=name[:-1*ind-1]
+        if (len(name)==0):
+            name="New"
+        name = os.path.join(self.path, name)
+        if (os.path.isfile(f"{name}{ext}")):
+            while (os.path.isfile(f"{name}({j}){ext}")):
+                j+=1
+            name = f"{name}({j})"
+        name = f"{name}{ext}"
+        open(name, "x")
+        self.update()
+        ind = (name[::-1]).index(delim)
+        self.index=self.files.index(name[-1*ind:])
     # Sets the source directory to the current file
     def move_into(self):
         file = self.full_path()
