@@ -12,40 +12,85 @@ def rewrite(file, content):
         f.write(content)
 # Class for making a sorter to look through files. Initializes over the files and can be changed to a different set of files
 class sorter:
-    def __init__(self, path=None, pathto=None):
+    def __init__(self, path=None, pathto=None, files=None, trash=None):
         self.path = path
         self.pathto = pathto
-        self.files = os.listdir(path)
+        if (files!=None):
+            self.files = files
+        else:
+            self.files = os.listdir(path)
         self.match_num = len(self.files)
         self.index=0
         self.last_dir = path
-        self.trash = os.path.join(_location, "Trash")
-        try:
-            os.mkdir(self.trash)
-        except FileExistsError:
-            pass
+        self.trash=trash
+        if (self.trash==None):
+            self.trash = os.path.join(_location, "Trash")
+            try:
+                os.mkdir(self.trash)
+            except FileExistsError:
+                pass
+        self.recurse=True
+        
 
     # Used for regex searching, returns all matches of the given regex pattern
-    def regex(self, pattern):
+    def regex(self, pattern, recurse):
         pat = re.compile(pattern)
         matches = []
         for file in self.files:
             result = pat.fullmatch(file)
+            if (recurse):
+                if (self.path==None):
+                    full = file
+                else:
+                    full = os.path.join(self.path,file)
+                if (os.path.isdir(full)):
+                    self.__regex(pat, full, matches)
             try:
-                matches.append(result.group(0))
+                if (self.path!=None):
+                    name = os.path.join(self.path, result.group(0))
+                else: name = result.group(0)
+                matches.append(name)
             except:
                 pass
         return matches
-    
+    def __regex(self, pat, dir, matches):
+        try:
+            files = os.listdir(dir)
+        except PermissionError:
+            return False
+        else:
+            for file in files:
+                result = pat.fullmatch(file)
+                full = os.path.join(dir,file)
+                if (os.path.isdir(full)):
+                    self.__regex(pat, full, matches)
+                try:
+                    if (self.path!=None):
+                        name = os.path.join(dir, result.group(0))
+                    else: name = result.group(0)
+                    matches.append(name)
+                except:
+                    pass
+
     # Refreshes file databank, good to initialize once the target directory files have changed
     def update(self):
-        self.files = os.listdir(self.path)
-        if len(self.files)==0:
-            self.move_back()
+        if (self.path==None):
+            for file in self.files:
+                if (not (os.path.isfile(file) or os.path.isdir(file))):
+                    self.files.remove(file)
+            if len(self.files)==0:
+                self.files.append("No more files")
+            self.match_num = len(self.files)
+            if (abs(self.index)>=self.match_num):
+                self.index=0
+        else:
             self.files = os.listdir(self.path)
-        self.match_num = len(self.files)
-        if (abs(self.index)>=self.match_num):
-            self.index=0
+            if len(self.files)==0:
+                self.move_back()
+                self.files = os.listdir(self.path)
+            self.match_num = len(self.files)
+            if (abs(self.index)>=self.match_num):
+                self.index=0
     
     # Returns 2*{number} of surrounding files to the current, aka {number} of files on each side up to the ends of the folder. 
     def surrounding_files(self, number):
@@ -68,17 +113,46 @@ class sorter:
                 return True
         return False
     
-    def find(self, pattern):
+    def find(self, pattern, recurse):
         pat = re.compile(pattern)
-        match = ""
         for file in self.files:
             result = pat.fullmatch(file)
+            if (recurse):
+                if (self.path==None):
+                    full = file
+                else:
+                    full = os.path.join(self.path,file)
+                if (os.path.isdir(full)):
+                    if (self.__find(pat, full)):
+                        break
             try:
                 match = result.group(0)
+                self.index=self.files.index(match)
                 break
             except:
                 pass
-        self.index=self.files.index(match)
+    def __find(self, pat, full_path):
+        try:
+            files = os.listdir(full_path)
+        except PermissionError:
+            return False
+        else:
+            for file in files:
+                result = pat.fullmatch(file)
+                if (self.recurse):
+                    full = os.path.join(full_path,file)
+                    if (os.path.isdir(full)):
+                        if(self.__find(pat, full)):
+                            break
+                try:
+                    match = result.group(0)
+                    self.change_source(full_path)
+                    self.update()
+                    self.index=self.files.index(match)
+                    return True
+                except:
+                    pass
+            return False
     def save_current(self, content):
         rewrite(self.full_path(), content)
     def new_file(self, name):
@@ -91,12 +165,18 @@ class sorter:
             name=name[:-1*ind-1]
         if (len(name)==0):
             name="New"
-        name = os.path.join(self.path, name)
+        if (not self.path==None):   
+            name = os.path.join(self.path, name)
         if (os.path.isfile(f"{name}{ext}")):
             while (os.path.isfile(f"{name}({j}){ext}")):
                 j+=1
             name = f"{name}({j})"
         name = f"{name}{ext}"
+        if (not("c:" in name.lower() or name.startswith(delim))):
+            if (os.path==None):
+                name = os.path.join(self.pathto,name)
+            else: 
+                name = os.path.join(self.path,name)
         open(name, "x")
         self.update()
         ind = (name[::-1]).index(delim)
@@ -126,7 +206,8 @@ class sorter:
     
     # Returns full path of the current file
     def full_path(self):
-        return os.path.join(self.path, self.files[self.index])
+        if (self.path==None): return self.files[self.index]
+        else: return os.path.join(self.path, self.files[self.index])
     
     # Changes the source directory to the given new_path. new_path can be relative or full
     def change_source(self, new_path):
@@ -173,7 +254,9 @@ class sorter:
 
     # Main function for operations on files
     def run(self, ans):
-        file=os.path.join(self.path, self.files[self.index])
+        if (self.path!=None):
+            file=os.path.join(self.path, self.files[self.index])
+        else: file = self.files[self.index]
         if(self.ifin(ans, ["help", "Help"])):
             print("""____________________
 open: Opens file

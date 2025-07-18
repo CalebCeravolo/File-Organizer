@@ -10,6 +10,7 @@ from tkinter import ttk
 from PIL import (Image as Img, ImageTk)
 import PyPDF2
 from shutil import move
+from organize import sorter
 _location = os.path.expanduser("~")
 test = _location[:3]
 if ("\\" in test): delim = "\\"
@@ -141,7 +142,7 @@ class Toplevel1:
         self.preview()
     def regex(self, *args):
         pattern = self.entry.get()
-        matches = self.org.regex(pattern)
+        matches = self.org.regex(pattern, self.recurse_regex.get())
         top1 = tk.Toplevel(self.top)
         new= Regex_window(matches, "Matches", self,top1)
         self.updates.append(new)
@@ -234,7 +235,7 @@ class Toplevel1:
         self.preview()
     def find(self, *args):
         pattern = self.entry.get()
-        self.org.find(pattern)
+        self.org.find(pattern, self.recurse_find.get())
         self.preview()
     def on_closing(self, *args):
         ans = askyesnocancel("Quit", "Would you like to delete your trash folder?")
@@ -254,6 +255,343 @@ class Toplevel1:
         top.maxsize(1444, 881)
         top.resizable(1,  1)
         top.title("Main")
+        top.configure(background="#d9d9d9")
+        top.configure(highlightbackground="#d9d9d9")
+        top.configure(highlightcolor="#000000")
+        show_num_pages = 5
+        show_num_characters = -1
+        show_num_files = 20
+        show_num_surrounding_files = 20
+        self.vars = {"Number of pages shown (pdf)" : show_num_pages, 
+                     "Number of characters shown (plain text)" : show_num_characters,
+                     "Number of subfiles shown (for directories)" : show_num_files,
+                     "Number of surrounding files show" : show_num_surrounding_files}
+        self.top = top
+        self.updates = []
+        self.File = tk.StringVar()
+        self.org = org
+        self.Surrounding = StringVar()
+        self.Regex_answers = StringVar()
+        self.entry = tk.StringVar()
+        self.currentS=tk.StringVar()
+        self.currentD = tk.StringVar()
+        self.recurse_find = tk.BooleanVar()
+        self.recurse_regex = tk.BooleanVar()
+
+        Label(self.top, text = "Recursive Find", background="#d9d9d9").place(relx=.01, rely=.3)
+        Label(self.top, text = "Recursive Regex", background="#d9d9d9").place(relx=.01, rely=.34)
+        self.RF_option = Checkbutton(self.top, variable = self.recurse_find, background="#d9d9d9")
+        self.RF_option.place(relx=.10, rely=.3)
+        
+        self.RR_option = Checkbutton(self.top, variable = self.recurse_regex, background="#d9d9d9")
+        self.RR_option.place(relx=.10, rely=.34)
+
+        self.menubar = Menu(self.top)
+        self.top.config(menu = self.menubar)
+        self.File_menu = Menu(self.menubar, tearoff=False)
+        self.File_menu.add_command(label='Settings',command=self.open_settings)
+        self.Additional_options = Menu(self.menubar, tearoff = False)
+        self.Additional_options.add_command(label="New Folder",command=self.newfolder)
+        self.Additional_options.add_command(label="Open",command=self.openf)
+        self.Additional_options.add_command(label="Save File Contents", command=self.overwrite)
+        self.Additional_options.add_command(label="New File", command = self.new_file)
+        self.Additional_options.add_command(label="Find", command = self.find)
+        self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
+        self.menubar.add_cascade(label="Menu",menu=self.File_menu)
+        self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
+        self.menubar.add_command(label = "Help", command=self.help_message)
+
+        
+        self.RegexB = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.RegexB.configure(text='''Regex''')
+        self.RegexB.configure(command = self.regex)
+
+        self.Delete = tk.Button(self.top)
+        self.Delete.configure(activebackground="#d9d9d9")
+        self.Delete.configure(activeforeground="black")
+        self.Delete.configure(background="#d9d9d9")
+        self.Delete.configure(disabledforeground="#a3a3a3")
+        self.Delete.configure(text='''Delete''')
+        self.Delete.configure(command = self.delete)
+
+        
+
+        self.Moveto = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Moveto.configure(text='''Move to''')
+        self.Moveto.configure(command = self.moveto)
+        
+        
+        self.Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Next.configure(text='''Next''')
+        self.Next.configure(command = self.next)
+
+        self.Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Back.configure(text='''Back''')
+        self.Back.configure(command = self.back)
+
+        self.Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Enter.configure(command = self.move_into_current, text = "Move into current")
+
+        self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.Move_back.configure(command = self.move_back, text = "Move into previous")
+        
+
+        self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
+
+        self.Extra_preview = Button(self.top)
+        self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
+        self.Extra_preview.configure(background="#d9d9d9")
+        self.Extra_preview.configure(foreground="#000000")
+        self.Extra_preview.configure(activebackground = "#d9d9d9")
+
+       
+
+        positions = linspace(.03, .35, 5)
+        positions2 = linspace(.01, .29, 3)
+        width = 67
+        p1height = .64
+        self.Next.place(relx=positions[1], rely=p1height, height=26, width=width)
+        #self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
+        self.Delete.place(relx=positions[3], rely=p1height, height=26, width=width)
+        self.RegexB.place(relx=positions[4], rely=p1height, height=26, width=width)
+        self.Moveto.place(relx=positions[2], rely=p1height, height=26, width=width)
+        self.Back.place(relx=positions[0], rely=p1height, height=26, width=width)
+
+        p2height = .56
+        self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
+        self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
+        self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
+        self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
+        self.helpMessage = r"""Welcome! 
+___________________
+The organizer defaults to operate within whatever directory this app was launched from, go to change directories to change this. Change Directories can take an absolute or relative path. Relative paths are relative to Target Directory
+___________________
+Some options take arguments from the command line input. Type into the command line and then select the desired option
+___________________
+Options that aren't buttons are in the Additonal Options pop down menu located next to the help button
+
+Options:
+Find:
+Using Regex search, sets current file to the first match. For example, F.* locates the first file that starts with an F. Click on Help in regex for more regex info
+___________________
+Change Directories: 
+Opens Change directories window. Used to change source or target directory. Takes relative or absolute path
+___________________
+Move into current/previous: 
+Sets source directory into the current viewed directory or to one less than current source path
+___________________
+Move To [dest]: 
+Moves file to destination directory typed in command line
+___________________
+New Folder [name]: 
+Creates new folder in directory specified in the command line input and moves current file into it
+___________________
+Delete: 
+Moves current file to Trash folder
+___________________
+Regex: 
+Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
+"""
+        # self.Text2 = tk.Text(self.top)
+        # self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
+        # self.Text2.configure(background="#d9d9d9")
+        # self.Text2.configure(font="TkTextFont")
+        # self.Text2.configure(foreground="black")
+        # self.Text2.configure(highlightbackground="#43f0fe")
+        # self.Text2.configure(highlightcolor="#000000")
+        # self.Text2.configure(insertbackground="#000000")
+        # self.Text2.configure(selectbackground="#d9d9d9")
+        # self.Text2.configure(selectforeground="black")
+        # self.Text2.configure(wrap="word")
+        # self.Text2.insert(1.0, helpMessage)
+
+        self.Preview = ScrolledText(self.top)
+        self.Preview.place(relx=0.425, rely=0.015, relheight=0.949
+                , relwidth=0.558)
+        self.Preview.configure(background="white", insertofftime = 800, insertontime = 700)
+        self.Preview.configure(font="TkTextFont")
+        self.Preview.configure(foreground="black")
+        self.Preview.configure(highlightbackground="#d9d9d9")
+        self.Preview.configure(highlightcolor="#000000")
+        self.Preview.configure(insertbackground="#000000")
+        self.Preview.configure(insertborderwidth="3")
+        self.Preview.configure(selectbackground="#d9d9d9")
+        self.Preview.configure(selectforeground="black")
+        self.Preview.configure(wrap="word")
+
+        self.PictureFrame = tk.Label(self.top)
+        self.PictureFrame.place(relx=0.425, rely=0.015, height=23, width=81, anchor = "nw")
+        self.PictureFrame.configure(activebackground="#d9d9d9")
+        self.PictureFrame.configure(activeforeground="black")
+        
+        self.currentSource = tk.Label(self.top)
+        self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
+        self.labelSource = tk.Label(self.top)
+        self.labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
+
+        self.currentDest = tk.Label(self.top)
+        self.currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
+        self.labelDest = tk.Label(self.top)
+        self.labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
+        
+        self.trash_label = tk.Label(self.top, text = f"Trash location: {org.trash}", background = "#d9d9d9")
+    
+
+        xpos_labels = .01
+        ystart_labels = .15
+        self.currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
+        self.currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
+        self.labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
+        self.labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
+        self.trash_label.place(relx=xpos_labels, rely = ystart_labels+.06, anchor = "w")
+        
+        self.TLabel3 = ttk.Label(self.top)
+        self.TLabel3.place(relx=0.007, rely=0.071, height=20, width=29)
+        self.TLabel3.configure(font="TkDefaultFont")
+        self.TLabel3.configure(relief="flat")
+        self.TLabel3.configure(anchor='w')
+        self.TLabel3.configure(justify='left')
+        self.TLabel3.configure(text='''File:''')
+        self.TLabel3.configure(compound='left')
+        self.TLabel3.configure(background = "#d9d9d9")
+
+        self.TEntry2 = ttk.Entry(self.top)
+        self.TEntry2.place(relx=0.076, rely=p1height+.1, height = 24
+                , relwidth=0.25, anchor = "nw")
+        self.TEntry2.configure(takefocus="")
+        self.TEntry2.configure(cursor="ibeam")
+        self.TEntry2.configure(textvariable = self.entry)
+
+        self.TLabel4 = ttk.Label(self.top)
+        self.TLabel4.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
+        self.TLabel4.configure(font="-family {Segoe UI} -size 9")
+        self.TLabel4.configure(relief="flat")
+        self.TLabel4.configure(anchor='w')
+        self.TLabel4.configure(justify='left')
+        self.TLabel4.configure(textvariable=self.File)
+        self.TLabel4.configure(compound='left')
+        self.TLabel4.configure(cursor="fleur")
+        self.TLabel4.configure(background = "#d9d9d9")
+        self.File.set(self.org.getCurrent())
+        self.preview()
+class Toplevel2:
+    def openf(self, *args):
+        self.org.run("open")
+        self.preview()
+    def update(self, *args):
+        self.org.update()
+        self.preview()
+    def moveto(self, *args):
+        self.org.run(f"moveto {self.entry.get()}")
+        self.preview()
+    def regex(self, *args):
+        pattern = self.entry.get()
+        matches = self.org.regex(pattern)
+        top1 = tk.Toplevel(self.top)
+        new= Regex_window(matches, "Matches", self,top1)
+        self.updates.append(new)
+    def newfolder(self, *args):
+        self.org.run(f"newfolder {self.entry.get()}")
+        self.preview()
+    def back(self, *args):
+        self.org.back()
+        self.preview()
+    def delete(self, *args):
+        self.org.run(f"remove")
+        self.preview()
+    def next(self, *args):
+        self.org.run(" ")
+        self.preview()
+    def preview(self, *args):
+        self.org.update()
+        file_name = self.org.full_path()
+        self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
+        self.currentD.set(self.org.pathto)
+        self.currentS.set(self.org.path)
+        self.trash_label.config(text = f"Trash location: {self.org.trash}")
+        self.File.set(self.org.getCurrent())
+        self.Preview.delete(1.0, tk.END)
+        for object in self.updates:
+            if (object.top.winfo_exists()):
+                object.update()
+            else: self.updates.remove(object)
+        if (os.path.isdir(file_name)):
+            for i, file in enumerate(self.org.get_children()):
+                self.Preview.insert(i+.0, f"{file}\n")
+                if (i==self.vars["Number of subfiles shown (for directories)"]):
+                    break
+        
+        try:
+            with open(file_name, "r") as f:
+                content = f.read()
+                if (self.vars["Number of characters shown (plain text)"]==-1):
+                    self.Preview.insert(1.0, content)
+                else:
+                    self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
+        except:
+            try:
+                self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
+                image = Img.open(self.org.full_path())
+                width  = int(self.top.winfo_width()*(.557))
+                height  = int(self.top.winfo_height()*(.949))
+                ratio = height/image.size[1]
+                if (ratio*image.size[0]>width):
+                    ratio = width/image.size[0]
+                    image = image.resize((width, int(ratio*image.size[1])))
+                else:
+                    image = image.resize((int(image.size[0]*ratio), height))
+                img = ImageTk.PhotoImage(image)
+                self.PictureFrame.config(image=img)
+                self.PictureFrame.image = img
+            except: 
+                self.PictureFrame.image = 0
+                self.PictureFrame.place_forget()
+                if (".pdf" in file_name):
+                    with open(self.org.full_path(), "rb") as f:
+                        reader = PyPDF2.PdfReader(f)
+                        for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
+                            self.Preview.insert(i+0.0, reader.pages[i].extract_text())
+    def open_settings(self, *args):
+        top1 = tk.Toplevel(self.top)
+        self.Settings = Settings_window(self.vars, self,top=top1)
+    def move_into_current(self, *args):
+        files = os.listdir(self.org.full_path())
+        new_org = sorter(pathto=self.org.pathto, files=files, trash=self.org.trash)
+        top1=tk.Toplevel(self.top)
+        Toplevel2(org=new_org, top=top1)
+    def move_back(self, *args):
+        self.org.move_back()
+        self.preview()
+    def open_preview(self, *args):
+        top1 = tk.Toplevel(self.top)
+        other_preview = Extra_preview(self.Surrounding,"Neighboring files", 'none',top1)
+        self.updates.append(other_preview)
+    def help_message(self, *args):
+        top1 = tk.Toplevel(self.top)
+        Extra_preview(self.helpMessage, "Help", "word",top1)
+    def overwrite(self, *args):
+        content = self.Preview.get(0.0, tk.END)
+        self.org.save_current(content)
+    def new_file(self, *args):
+        name = self.entry.get()
+        self.org.new_file(name)
+        self.preview()
+    def find(self, *args):
+        pattern = self.entry.get()
+        self.org.find(pattern)
+        self.preview()
+    def open_trash(self, *args):
+        os.startfile(self.org.trash)
+    def __init__(self, org, top=None):
+        '''This class configures and populates the toplevel window.
+           top is the toplevel containing window.'''
+        # top.protocol("WM_DELETE_WINDOW", self.on_closing)
+        top.geometry("1178x589+104+110")
+        top.minsize(120, 1)
+        top.maxsize(1444, 881)
+        top.resizable(1,  1)
+        top.title("Regex Files")
         top.configure(background="#d9d9d9")
         top.configure(highlightbackground="#d9d9d9")
         top.configure(highlightcolor="#000000")
@@ -326,8 +664,8 @@ class Toplevel1:
         self.Move_back.configure(command = self.move_back, text = "Move into previous")
         
 
-        self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
+        # self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        # self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
         self.Extra_preview = Button(self.top)
         self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
@@ -340,39 +678,48 @@ class Toplevel1:
         positions = linspace(.03, .35, 5)
         positions2 = linspace(.01, .29, 3)
         width = 67
-        self.Next.place(relx=positions[1], rely=0.537, height=26, width=width)
+        p1height = .64
+        self.Next.place(relx=positions[1], rely=p1height, height=26, width=width)
         #self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
-        self.Delete.place(relx=positions[3], rely=0.537, height=26, width=width)
-        self.RegexB.place(relx=positions[4], rely=0.537, height=26, width=width)
-        self.Moveto.place(relx=positions[2], rely=0.537, height=26, width=width)
-        self.Back.place(relx=positions[0], rely=0.537, height=26, width=width)
+        self.Delete.place(relx=positions[3], rely=p1height, height=26, width=width)
+        self.RegexB.place(relx=positions[4], rely=p1height, height=26, width=width)
+        self.Moveto.place(relx=positions[2], rely=p1height, height=26, width=width)
+        self.Back.place(relx=positions[0], rely=p1height, height=26, width=width)
 
-        p2height = .46
-        self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
+        p2height = .56
+        #self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
         self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
         self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
         self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
-        self.helpMessage = """Welcome! 
+        self.helpMessage = r"""Welcome! 
 ___________________
-The organizer defaults to operate within C:\\Users\\{name}, go to change directories to change this. Change directories can take an absolute or relative path. Relative paths are relative to target directory
+The organizer defaults to operate within whatever directory this app was launched from, go to change directories to change this. Change Directories can take an absolute or relative path. Relative paths are relative to Target Directory
 ___________________
-Most buttons take arguments from the command line input. Type into the box and then press the desired button
+Some options take arguments from the command line input. Type into the command line and then select the desired option
 ___________________
+Options that aren't buttons are in the Additonal Options pop down menu located next to the help button
 
-
-The buttons:
+Options:
+Find:
+Using Regex search, sets current file to the first match. For example, F.* locates the first file that starts with an F. Click on Help in regex for more regex info
 ___________________
-Change Directories: Opens Change directories window. Used to change source or target directory. Takes relative or absolute path
+Change Directories: 
+Opens Change directories window. Used to change source or target directory. Takes relative or absolute path
 ___________________
-Move into current/previous: Sets source directory into the current viewed directory or to one less than current source path
+Move into current/previous: 
+Sets source directory into the current viewed directory or to one less than current source path
 ___________________
-Move To [dest]: Moves file to destination directory typed in command line
+Move To [dest]: 
+Moves file to destination directory typed in command line
 ___________________
-New Folder [name]: Creates new folder in directory specified in the command line input and moves current file into it
+New Folder [name]: 
+Creates new folder in directory specified in the command line input and moves current file into it
 ___________________
-Delete: Moves current file to Trash folder
+Delete: 
+Moves current file to Trash folder
 ___________________
-Regex: Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
+Regex: 
+Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
 """
         # self.Text2 = tk.Text(self.top)
         # self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
@@ -438,8 +785,8 @@ Regex: Returns the files found by a regex search through the current source dire
         self.TLabel3.configure(background = "#d9d9d9")
 
         self.TEntry2 = ttk.Entry(self.top)
-        self.TEntry2.place(relx=0.076, rely=0.611, height = 24
-                , relwidth=0.25)
+        self.TEntry2.place(relx=0.076, rely=p1height+.1, height = 24
+                , relwidth=0.25, anchor = "nw")
         self.TEntry2.configure(takefocus="")
         self.TEntry2.configure(cursor="ibeam")
         self.TEntry2.configure(textvariable = self.entry)
@@ -517,16 +864,29 @@ class Regex_window:
                 move(file_full,self.master.org.trash)
         self.preview.delete(0.0, tk.END)
         self.master.preview()
+    def Preview(self):
+        files = self.preview.get(0.0, tk.END).splitlines()
+        for file in files:
+            if not len(file):
+                files.remove(file)
+        top1 = tk.Toplevel(self.top)
+        new_org = sorter(pathto=self.master.org.pathto, files=files, trash=self.master.org.trash)
+        Toplevel2(org=new_org, top=top1)
     def help_menu(self):
         help = r"""
 Regex help:
+Used to search for files whose names follow a certain pattern
+
 When deleting all or moving all, the program looks
 at what is left in the message box. Thus, delete any 
 files from the textbox that you don't want to affect
+New Folder creates a folder with whatever name you have
+in the command line. It then moves all files left in the 
+message box into the new folder. The name can be a path
 
 Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
  .  : Matches any character
- \  : Escape character. Place before a special character (like .) to match the character and not use its function
+ \  : Escape character. Place before a special character like ., ), or { to match the character
  ^  : Matches start of string
  $  : Matches end of string
  *  : Matches 0 or more repetitions of the pattern to the left
@@ -534,14 +894,21 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
  ?  : Matches 0 or 1 repetitions of the pattern to the left
 {m} : Matches m repetitions of pattern to the left
 {m,n} : Matches m to n repetitions of pattern to the left
+(a|b) : Matches a or b. Can be combined with more parenthesis for complex patterns or more | for more options
 
 \d : Matches a digit
 \D : Matches anything but a digit
 \s : Matches whitespace
 \S : Matches anything but whitespace
+
+Examples:
+.* matches any file
+.*\(\d\).* matches any file name that has (digit), useful for locating duplicates
+.*(l|L)ab.* matches any file name that contains lab or Lab
+.*\.(exe|jpg|txt) matches any file that ends in .exe .txt or .jpg
 """ 
         top1 = tk.Toplevel(self.top)
-        message(help, top1)
+        Extra_preview(help, "Help", "word", top1)
     def update(self):
         if (isinstance(self.files, StringVar)):
             text = self.files.get()
@@ -598,6 +965,7 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
         self.preview.insert(0.0, text)
         self.Additional_options = Menu(top, tearoff = False)
         self.Additional_options.add_command(label = "Help",command =self.help_menu)
+        self.Additional_options.add_command(label = "Detailed Preview", command = self.Preview)
         top.config(menu = self.Additional_options)
         #self.menubar.add_cascade(label="Help", menu = self.Additional_options)
 
@@ -622,7 +990,7 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
         self.Folder  = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
         self.Folder.configure(disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 9", foreground="#000000")
         self.Folder.configure(highlightbackground="#d9d9d9", highlightcolor="#000000")
-        self.Folder.configure(text='''Place''')
+        self.Folder.configure(text='''New Folder''')
         self.Folder.configure(command = self.newFolder)
 
         self.Delete.place(relx = .1, rely = .9, anchor = "w")
