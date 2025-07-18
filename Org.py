@@ -158,7 +158,6 @@ class Toplevel1:
         self.org.run(" ")
         self.preview()
     def preview(self, *args):
-        
         self.org.update()
         file_name = self.org.full_path()
         self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
@@ -185,29 +184,28 @@ class Toplevel1:
                 else:
                     self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
         except:
-            pass
-        try:
-            self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
-            image = Img.open(self.org.full_path())
-            width  = int(self.top.winfo_width()*(.557))
-            height  = int(self.top.winfo_height()*(.949))
-            ratio = height/image.size[1]
-            if (ratio*image.size[0]>width):
-                ratio = width/image.size[0]
-                image = image.resize((width, int(ratio*image.size[1])))
-            else:
-                image = image.resize((int(image.size[0]*ratio), height))
-            img = ImageTk.PhotoImage(image)
-            self.PictureFrame.config(image=img)
-            self.PictureFrame.image = img
-        except: 
-            self.PictureFrame.image = 0
-            self.PictureFrame.place_forget()
-        if (".pdf" in file_name):
-            with open(self.org.full_path(), "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
-                    self.Preview.insert(i+0.0, reader.pages[i].extract_text())
+            try:
+                self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
+                image = Img.open(self.org.full_path())
+                width  = int(self.top.winfo_width()*(.557))
+                height  = int(self.top.winfo_height()*(.949))
+                ratio = height/image.size[1]
+                if (ratio*image.size[0]>width):
+                    ratio = width/image.size[0]
+                    image = image.resize((width, int(ratio*image.size[1])))
+                else:
+                    image = image.resize((int(image.size[0]*ratio), height))
+                img = ImageTk.PhotoImage(image)
+                self.PictureFrame.config(image=img)
+                self.PictureFrame.image = img
+            except: 
+                self.PictureFrame.image = 0
+                self.PictureFrame.place_forget()
+                if (".pdf" in file_name):
+                    with open(self.org.full_path(), "rb") as f:
+                        reader = PyPDF2.PdfReader(f)
+                        for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
+                            self.Preview.insert(i+0.0, reader.pages[i].extract_text())
     def openOther(self, *args):
         _top1 = tk.Toplevel(self.top)
         self.OtherPage = OpenPage(self.org, self, _top1)
@@ -245,6 +243,8 @@ class Toplevel1:
             self.top.destroy()
         elif (ans==False):
             self.top.destroy()
+    def open_trash(self, *args):
+        os.startfile(self.org.trash)
     def __init__(self, org, top=None):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -258,7 +258,7 @@ class Toplevel1:
         top.configure(highlightbackground="#d9d9d9")
         top.configure(highlightcolor="#000000")
         show_num_pages = 5
-        show_num_characters = 2000
+        show_num_characters = -1
         show_num_files = 20
         show_num_surrounding_files = 20
         self.vars = {"Number of pages shown (pdf)" : show_num_pages, 
@@ -286,6 +286,7 @@ class Toplevel1:
         self.Additional_options.add_command(label="Save File Contents", command=self.overwrite)
         self.Additional_options.add_command(label="New File", command = self.new_file)
         self.Additional_options.add_command(label="Find", command = self.find)
+        self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)
@@ -551,8 +552,31 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
         else: text = "Can't show that :("
         self.preview.delete(0.0, tk.END)
         self.preview.insert(0.0, text)
+    def newFolder(self):
+        dest = self.commandline.get()
+        files = self.preview.get(0.0, tk.END).splitlines()
+        path = self.master.org.path
+        pathto = self.master.org.pathto
+        
+        if (not ("c:\\" in dest.lower() or dest.startswith(delim))):
+            dest = os.path.join(pathto, dest)
+        if (not len(dest)):
+            dest = "New"
+        if (os.path.isdir(f"{dest}")):
+            j=0
+            while (os.path.isdir(f"{dest}({j})")):
+                j+=1
+            dest = f"{dest}({j})"
+        os.makedirs(dest)
+        for file in files:
+                if (len(file)):
+                    move(os.path.join(path,file), dest)
+        self.master.org.change_source(dest)
+        self.master.preview()
+        self.top.destroy()
             
     def __init__(self, files ,name,master,top=None):
+        top.geometry("500x800+104+30")
         self.top = top
         self.master = master
         top.title(name)
@@ -579,7 +603,7 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
 
         self.entry = StringVar()
         self.commandline = ttk.Entry(top)
-        self.commandline.place(relx=.41, rely=.9, relwidth=0.8, anchor = "w")
+        self.commandline.place(relx=.5, rely=.8, relwidth=0.8, anchor = "s")
         self.commandline.configure(textvariable = self.entry)
 
         self.Delete = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
@@ -595,8 +619,15 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
         self.Moveto.configure(command = self.move_all)
         self.Back = tk.Button(top)
 
+        self.Folder  = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
+        self.Folder.configure(disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 9", foreground="#000000")
+        self.Folder.configure(highlightbackground="#d9d9d9", highlightcolor="#000000")
+        self.Folder.configure(text='''Place''')
+        self.Folder.configure(command = self.newFolder)
+
         self.Delete.place(relx = .1, rely = .9, anchor = "w")
-        self.Moveto.place(relx = .4, rely = .9, anchor = "e")
+        self.Moveto.place(relx = .5, rely = .9, anchor = "w")
+        self.Folder.place(relx = .8, rely = .9, anchor = "w")
 
 class message:
     def __init__(self, message, top):
