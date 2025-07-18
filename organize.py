@@ -67,8 +67,18 @@ class sorter:
             if (word in string):
                 return True
         return False
-
-
+    
+    def find(self, pattern):
+        pat = re.compile(pattern)
+        match = ""
+        for file in self.files:
+            result = pat.fullmatch(file)
+            try:
+                match = result.group(0)
+                break
+            except:
+                pass
+        self.index=self.files.index(match)
     def save_current(self, content):
         rewrite(self.full_path(), content)
     def new_file(self, name):

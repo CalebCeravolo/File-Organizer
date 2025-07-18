@@ -234,6 +234,10 @@ class Toplevel1:
         name = self.entry.get()
         self.org.new_file(name)
         self.preview()
+    def find(self, *args):
+        pattern = self.entry.get()
+        self.org.find(pattern)
+        self.preview()
     def on_closing(self, *args):
         ans = askyesnocancel("Quit", "Would you like to delete your trash folder?")
         if (ans):
@@ -281,6 +285,7 @@ class Toplevel1:
         self.Additional_options.add_command(label="Open",command=self.openf)
         self.Additional_options.add_command(label="Save File Contents", command=self.overwrite)
         self.Additional_options.add_command(label="New File", command = self.new_file)
+        self.Additional_options.add_command(label="Find", command = self.find)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)
