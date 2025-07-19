@@ -34,43 +34,55 @@ class sorter:
 
     # Used for regex searching, returns all matches of the given regex pattern
     def regex(self, pattern, recurse):
+        if ("--avoid" in pattern):
+            ind = pattern.find("--avoid")
+            ind2=ind+len("--avoid")+1
+            npattern = pattern[ind2:]
+            pattern=pattern[:ind-1]
+            npat=re.compile(npattern)
+            print(f"pattern:{pattern}:\nnpattern:{npattern}:")
+        else: npat = None
         pat = re.compile(pattern)
+        
         matches = []
         for file in self.files:
-            result = pat.fullmatch(file)
-            if (recurse):
-                if (self.path==None):
-                    full = file
-                else:
-                    full = os.path.join(self.path,file)
-                if (os.path.isdir(full)):
-                    self.__regex(pat, full, matches)
-            try:
-                if (self.path!=None):
-                    name = os.path.join(self.path, result.group(0))
-                else: name = result.group(0)
-                matches.append(name)
-            except:
-                pass
+            if ((npat==None) or (not npat.fullmatch(file))):
+                result = pat.fullmatch(file)
+                if (recurse):
+                    if (self.path==None):
+                        full = file
+                    else:
+                        full = os.path.join(self.path,file)
+                    
+                    if (os.path.isdir(full)):
+                        self.__regex(pat, npat, full, matches)
+                try:
+                    if (self.path!=None):
+                        name = os.path.join(self.path, result.group(0))
+                    else: name = result.group(0)
+                    matches.append(name)
+                except:
+                    pass
         return matches
-    def __regex(self, pat, dir, matches):
+    def __regex(self, pat, npat, dir, matches):
         try:
             files = os.listdir(dir)
         except PermissionError:
             return False
         else:
             for file in files:
-                result = pat.fullmatch(file)
-                full = os.path.join(dir,file)
-                if (os.path.isdir(full)):
-                    self.__regex(pat, full, matches)
-                try:
-                    if (self.path!=None):
-                        name = os.path.join(dir, result.group(0))
-                    else: name = result.group(0)
-                    matches.append(name)
-                except:
-                    pass
+                if ((npat==None) or (not npat.fullmatch(file))):
+                    result = pat.fullmatch(file)
+                    full = os.path.join(dir,file)
+                    if (os.path.isdir(full)):
+                        self.__regex(pat, npat, full, matches)
+                    try:
+                        if (self.path!=None):
+                            name = os.path.join(dir, result.group(0))
+                        else: name = result.group(0)
+                        matches.append(name)
+                    except:
+                        pass
 
     # Refreshes file databank, good to initialize once the target directory files have changed
     def update(self):
@@ -154,7 +166,7 @@ class sorter:
                     pass
             return False
     def save_current(self, content):
-        rewrite(self.full_path(), content)
+        rewrite(self.full_path(), content[:-1])
     def new_file(self, name):
         j=1
         ts=name[::-1]

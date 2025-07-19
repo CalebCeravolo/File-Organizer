@@ -167,6 +167,8 @@ class Toplevel1:
         self.trash_label.config(text = f"Trash location: {self.org.trash}")
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
+        self.PictureFrame.image = 0
+        self.PictureFrame.place_forget()
         for object in self.updates:
             if (object.top.winfo_exists()):
                 object.update()
@@ -176,37 +178,35 @@ class Toplevel1:
                 self.Preview.insert(i+.0, f"{file}\n")
                 if (i==self.vars["Number of subfiles shown (for directories)"]):
                     break
-        
-        try:
-            with open(file_name, "r") as f:
-                content = f.read()
-                if (self.vars["Number of characters shown (plain text)"]==-1):
-                    self.Preview.insert(1.0, content)
-                else:
-                    self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
-        except:
+        else:
             try:
-                self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
-                image = Img.open(self.org.full_path())
-                width  = int(self.top.winfo_width()*(.557))
-                height  = int(self.top.winfo_height()*(.949))
-                ratio = height/image.size[1]
-                if (ratio*image.size[0]>width):
-                    ratio = width/image.size[0]
-                    image = image.resize((width, int(ratio*image.size[1])))
-                else:
-                    image = image.resize((int(image.size[0]*ratio), height))
-                img = ImageTk.PhotoImage(image)
-                self.PictureFrame.config(image=img)
-                self.PictureFrame.image = img
-            except: 
-                self.PictureFrame.image = 0
-                self.PictureFrame.place_forget()
-                if (".pdf" in file_name):
-                    with open(self.org.full_path(), "rb") as f:
-                        reader = PyPDF2.PdfReader(f)
-                        for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
-                            self.Preview.insert(i+0.0, reader.pages[i].extract_text())
+                with open(file_name, "r") as f:
+                    content = f.read()
+                    if (self.vars["Number of characters shown (plain text)"]==-1):
+                        self.Preview.insert(0.0, content)
+                    else:
+                        self.Preview.insert(0.0, content[0:self.vars["Number of characters shown (plain text)"]])
+            except:
+                try:
+                    self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
+                    image = Img.open(self.org.full_path())
+                    width  = int(self.top.winfo_width()*(.557))
+                    height  = int(self.top.winfo_height()*(.949))
+                    ratio = height/image.size[1]
+                    if (ratio*image.size[0]>width):
+                        ratio = width/image.size[0]
+                        image = image.resize((width, int(ratio*image.size[1])))
+                    else:
+                        image = image.resize((int(image.size[0]*ratio), height))
+                    img = ImageTk.PhotoImage(image)
+                    self.PictureFrame.config(image=img)
+                    self.PictureFrame.image = img
+                except: 
+                    if (".pdf" in file_name):
+                        with open(self.org.full_path(), "rb") as f:
+                            reader = PyPDF2.PdfReader(f)
+                            for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
+                                self.Preview.insert(i+0.0, reader.pages[i].extract_text())
     def openOther(self, *args):
         _top1 = tk.Toplevel(self.top)
         self.OtherPage = OpenPage(self.org, self, _top1)
@@ -364,6 +364,8 @@ class Toplevel1:
         self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
         self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         self.helpMessage = r"""Welcome! 
+This is a file organizer app. This help box gives info into how to use the buttons on the main screen. The regex window has further information into how to use regex.
+You can use this organizer as a text editor by editing the preview box and selecting Save File Content from the Additional Options dropdown menu
 ___________________
 The organizer defaults to operate within whatever directory this app was launched from, go to change directories to change this. Change Directories can take an absolute or relative path. Relative paths are relative to Target Directory
 ___________________
@@ -372,6 +374,7 @@ ___________________
 Options that aren't buttons are in the Additonal Options pop down menu located next to the help button
 
 Options:
+___________________
 Find:
 Using Regex search, sets current file to the first match. For example, F.* locates the first file that starts with an F. Click on Help in regex for more regex info
 ___________________
@@ -386,6 +389,12 @@ Moves file to destination directory typed in command line
 ___________________
 New Folder [name]: 
 Creates new folder in directory specified in the command line input and moves current file into it
+___________________
+New File [name]:
+Creates new file in current directory with name in the command line. Can have any file extension
+___________________
+Save File Contents:
+Saves the content of the preview box to the current file
 ___________________
 Delete: 
 Moves current file to Trash folder
@@ -512,6 +521,8 @@ class Toplevel2:
         self.trash_label.config(text = f"Trash location: {self.org.trash}")
         self.File.set(self.org.getCurrent())
         self.Preview.delete(1.0, tk.END)
+        self.PictureFrame.image = 0
+        self.PictureFrame.place_forget()
         for object in self.updates:
             if (object.top.winfo_exists()):
                 object.update()
@@ -545,8 +556,6 @@ class Toplevel2:
                 self.PictureFrame.config(image=img)
                 self.PictureFrame.image = img
             except: 
-                self.PictureFrame.image = 0
-                self.PictureFrame.place_forget()
                 if (".pdf" in file_name):
                     with open(self.org.full_path(), "rb") as f:
                         reader = PyPDF2.PdfReader(f)
@@ -584,8 +593,6 @@ class Toplevel2:
     def open_trash(self, *args):
         os.startfile(self.org.trash)
     def __init__(self, org, top=None):
-        '''This class configures and populates the toplevel window.
-           top is the toplevel containing window.'''
         # top.protocol("WM_DELETE_WINDOW", self.on_closing)
         top.geometry("1178x589+104+110")
         top.minsize(120, 1)
@@ -642,12 +649,9 @@ class Toplevel2:
         self.Delete.configure(text='''Delete''')
         self.Delete.configure(command = self.delete)
 
-        
-
         self.Moveto = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Moveto.configure(text='''Move to''')
         self.Moveto.configure(command = self.moveto)
-        
         
         self.Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Next.configure(text='''Next''')
@@ -875,7 +879,9 @@ class Regex_window:
     def help_menu(self):
         help = r"""
 Regex help:
-Used to search for files whose names follow a certain pattern
+Used to search for files whose names follow a certain pattern avoiding folders and files that follow a pattern
+use: [search pattern] --avoid [avoid pattern]
+avoid is an optional field
 
 When deleting all or moving all, the program looks
 at what is left in the message box. Thus, delete any 
@@ -894,7 +900,7 @@ Basic Guide: (go to https://docs.python.org/3/library/re.html for more)
  ?  : Matches 0 or 1 repetitions of the pattern to the left
 {m} : Matches m repetitions of pattern to the left
 {m,n} : Matches m to n repetitions of pattern to the left
-(a|b) : Matches a or b. Can be combined with more parenthesis for complex patterns or more | for more options
+(a|b) : Matches a or b. a and b can be patterns Can be combined with more parenthesis for complex patterns or more | for more options
 
 \d : Matches a digit
 \D : Matches anything but a digit
