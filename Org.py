@@ -496,10 +496,13 @@ class Toplevel2:
         self.preview()
     def regex(self, *args):
         pattern = self.entry.get()
-        matches = self.org.regex(pattern)
-        top1 = tk.Toplevel(self.top)
-        new= Regex_window(matches, "Matches", self,top1)
-        self.updates.append(new)
+        matches = self.org.regex(pattern, False) #Regex search no recursion
+        self.org.files=matches
+        self.org.update()
+        self.preview()
+        # top1 = tk.Toplevel(self.top)
+        # new= Regex_window(matches, "Matches", self,top1)
+        #self.updates.append(new)
     def newfolder(self, *args):
         self.org.run(f"newfolder {self.entry.get()}")
         self.preview()
@@ -565,10 +568,12 @@ class Toplevel2:
         top1 = tk.Toplevel(self.top)
         self.Settings = Settings_window(self.vars, self,top=top1)
     def move_into_current(self, *args):
-        files = os.listdir(self.org.full_path())
-        new_org = sorter(pathto=self.org.pathto, files=files, trash=self.org.trash)
-        top1=tk.Toplevel(self.top)
-        Toplevel2(org=new_org, top=top1)
+        path=self.org.full_path()
+        if (os.path.isdir(path)):
+            files = os.listdir(path)
+            new_org = sorter(pathto=self.org.pathto, files=files, trash=self.org.trash)
+            top1=tk.Toplevel(self.top)
+            Toplevel2(org=new_org, top=top1)
     def move_back(self, *args):
         self.org.move_back()
         self.preview()
@@ -588,7 +593,7 @@ class Toplevel2:
         self.preview()
     def find(self, *args):
         pattern = self.entry.get()
-        self.org.find(pattern)
+        self.org.find(pattern, False)
         self.preview()
     def open_trash(self, *args):
         os.startfile(self.org.trash)
@@ -664,8 +669,8 @@ class Toplevel2:
         self.Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.Enter.configure(command = self.move_into_current, text = "Move into current")
 
-        self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Move_back.configure(command = self.move_back, text = "Move into previous")
+        # self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        # self.Move_back.configure(command = self.move_back, text = "Move into previous")
         
 
         # self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
@@ -693,7 +698,7 @@ class Toplevel2:
         p2height = .56
         #self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
         self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
-        self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
+        #self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
         self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         self.helpMessage = r"""Welcome! 
 ___________________

@@ -40,14 +40,17 @@ class sorter:
             npattern = pattern[ind2:]
             pattern=pattern[:ind-1]
             npat=re.compile(npattern)
-            print(f"pattern:{pattern}:\nnpattern:{npattern}:")
         else: npat = None
         pat = re.compile(pattern)
         
         matches = []
         for file in self.files:
             if ((npat==None) or (not npat.fullmatch(file))):
-                result = pat.fullmatch(file)
+                if (delim in file):
+                    rev_file = file[::-1]
+                    ind1 = rev_file.find(delim)
+                    file_search = file[-1*ind1:]
+                else: file_search=file
                 if (recurse):
                     if (self.path==None):
                         full = file
@@ -56,13 +59,11 @@ class sorter:
                     
                     if (os.path.isdir(full)):
                         self.__regex(pat, npat, full, matches)
-                try:
+                if(pat.fullmatch(file_search)):
                     if (self.path!=None):
-                        name = os.path.join(self.path, result.group(0))
-                    else: name = result.group(0)
+                        name = os.path.join(self.path, file)
+                    else: name = file
                     matches.append(name)
-                except:
-                    pass
         return matches
     def __regex(self, pat, npat, dir, matches):
         try:
@@ -72,17 +73,20 @@ class sorter:
         else:
             for file in files:
                 if ((npat==None) or (not npat.fullmatch(file))):
-                    result = pat.fullmatch(file)
+                    if (delim in file):
+                        rev_file = file[::-1]
+                        ind1 = rev_file.find(delim)
+                        file_search = file[:-1*ind1]
+                    else: file_search=file
                     full = os.path.join(dir,file)
                     if (os.path.isdir(full)):
                         self.__regex(pat, npat, full, matches)
-                    try:
+                    
+                    if(pat.fullmatch(file_search)):
                         if (self.path!=None):
-                            name = os.path.join(dir, result.group(0))
-                        else: name = result.group(0)
+                            name = os.path.join(dir, file)
+                        else: name = file
                         matches.append(name)
-                    except:
-                        pass
 
     # Refreshes file databank, good to initialize once the target directory files have changed
     def update(self):
