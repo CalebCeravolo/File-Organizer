@@ -31,6 +31,20 @@ class sorter:
                 pass
         self.recurse=True
         
+    def search(self, pattern):
+        pat = re.compile(pattern)
+        matches = []
+        for file in self.files:
+            if (not delim in file):
+                file = os.path.join(self.path, file)
+            if (os.path.isfile(file)):
+                try:
+                    with open(file, "r") as f:
+                        content = f.read()
+                        if (pat.search(content)):
+                            matches.append(file)
+                except: pass
+        return matches
 
     # Used for regex searching, returns all matches of the given regex pattern
     def regex(self, pattern, recurse):
@@ -46,11 +60,11 @@ class sorter:
         matches = []
         for file in self.files:
             if ((npat==None) or (not npat.fullmatch(file))):
-                if (delim in file):
-                    rev_file = file[::-1]
-                    ind1 = rev_file.find(delim)
-                    file_search = file[-1*ind1:]
-                else: file_search=file
+                # if (delim in file):
+                #     rev_file = file[::-1]
+                #     ind1 = rev_file.find(delim)
+                #     file_search = file[-1*ind1:]
+                # else: file_search=file
                 if (recurse):
                     if (self.path==None):
                         full = file
@@ -59,7 +73,7 @@ class sorter:
                     
                     if (os.path.isdir(full)):
                         self.__regex(pat, npat, full, matches)
-                if(pat.fullmatch(file_search)):
+                if(pat.fullmatch(file)):
                     if (self.path!=None):
                         name = os.path.join(self.path, file)
                     else: name = file
@@ -73,16 +87,16 @@ class sorter:
         else:
             for file in files:
                 if ((npat==None) or (not npat.fullmatch(file))):
-                    if (delim in file):
-                        rev_file = file[::-1]
-                        ind1 = rev_file.find(delim)
-                        file_search = file[:-1*ind1]
-                    else: file_search=file
+                    # if (delim in file):
+                    #     rev_file = file[::-1]
+                    #     ind1 = rev_file.find(delim)
+                    #     file_search = file[:-1*ind1]
+                    # else: file_search=file
                     full = os.path.join(dir,file)
                     if (os.path.isdir(full)):
                         self.__regex(pat, npat, full, matches)
                     
-                    if(pat.fullmatch(file_search)):
+                    if(pat.fullmatch(file)):
                         if (self.path!=None):
                             name = os.path.join(dir, file)
                         else: name = file
@@ -130,44 +144,46 @@ class sorter:
         return False
     
     def find(self, pattern, recurse):
+        if ("--avoid" in pattern):
+            ind = pattern.find("--avoid")
+            ind2=ind+len("--avoid")+1
+            npattern = pattern[ind2:]
+            pattern=pattern[:ind-1]
+            npat=re.compile(npattern)
+        else: npat = None
         pat = re.compile(pattern)
         for file in self.files:
-            result = pat.fullmatch(file)
-            if (recurse):
-                if (self.path==None):
-                    full = file
-                else:
-                    full = os.path.join(self.path,file)
-                if (os.path.isdir(full)):
-                    if (self.__find(pat, full)):
-                        break
-            try:
-                match = result.group(0)
-                self.index=self.files.index(match)
-                break
-            except:
-                pass
-    def __find(self, pat, full_path):
+            if ((npat==None) or (not npat.fullmatch(file))):
+                if (recurse):
+                    if (self.path==None):
+                        full = file
+                    else:
+                        full = os.path.join(self.path,file)
+                    if (os.path.isdir(full)):
+                        if (self.__find(pat, npat, full)):
+                            break
+                if (pat.fullmatch(file)):
+                    match = file
+                    self.index=self.files.index(match)
+                    break
+    def __find(self, pat, npat,full_path):
         try:
             files = os.listdir(full_path)
         except PermissionError:
             return False
         else:
             for file in files:
-                result = pat.fullmatch(file)
-                if (self.recurse):
+                if ((npat==None) or (not npat.fullmatch(file))):
                     full = os.path.join(full_path,file)
                     if (os.path.isdir(full)):
-                        if(self.__find(pat, full)):
-                            break
-                try:
-                    match = result.group(0)
-                    self.change_source(full_path)
-                    self.update()
-                    self.index=self.files.index(match)
-                    return True
-                except:
-                    pass
+                        if(self.__find(pat, npat, full)):
+                            return True
+                    if (pat.fullmatch(file)):
+                        match = file
+                        self.change_source(full_path)
+                        self.update()
+                        self.index=self.files.index(match)
+                        return True
             return False
     def save_current(self, content):
         rewrite(self.full_path(), content[:-1])
@@ -183,20 +199,27 @@ class sorter:
             name="New"
         if (not self.path==None):   
             name = os.path.join(self.path, name)
+        else:
+            name = os.path.join(self.pathto, name)
+
         if (os.path.isfile(f"{name}{ext}")):
             while (os.path.isfile(f"{name}({j}){ext}")):
                 j+=1
             name = f"{name}({j})"
         name = f"{name}{ext}"
-        if (not("c:" in name.lower() or name.startswith(delim))):
-            if (os.path==None):
-                name = os.path.join(self.pathto,name)
-            else: 
-                name = os.path.join(self.path,name)
+        # if (not("c:" in name.lower() or name.startswith(delim))):
+        #     if (os.path==None):
+        #         name = os.path.join(self.pathto,name)
+        #     else: 
+        #         name = os.path.join(self.path,name)
         open(name, "x")
-        self.update()
-        ind = (name[::-1]).index(delim)
-        self.index=self.files.index(name[-1*ind:])
+        if (self.path==None):
+            self.files.insert(self.index, name)
+            self.update()
+        else:
+            self.update()
+            ind = (name[::-1]).index(delim)
+            self.index=self.files.index(name[-1*ind:])
     # Sets the source directory to the current file
     def move_into(self):
         file = self.full_path()
@@ -263,46 +286,65 @@ class sorter:
     # Returns current file name
     def getCurrent(self):
         return self.files[self.index]
-    
+    def open(self):
+        file=self.full_path()
+        if os.path.isdir(file) or os.path.isfile(file):
+            os.startfile(file)
+    def moveto(self, dest):
+        file=self.full_path()
+        if (not ("c:\\" in dest.lower() or dest.startswith(delim))):
+            dest=os.path.join(self.pathto, dest)
+        if (os.path.isdir(dest)):
+            shutil.move(file, dest)
+
+    def newfolder(self, folder_name):
+        file=self.full_path()
+        if ("c:\\" in folder_name):
+            os.makedirs(folder_name)
+            shutil.move(file, folder_name)
+        else:
+            folder_full = os.path.join(self.pathto, folder_name)
+            os.makedirs(folder_full)
+            shutil.move(file, folder_full)
+    def delete(self):
+        file=self.full_path()
+        shutil.move(file, self.trash) 
     # Goes back an index
     def back(self):
         self.index-=1
-
+        # if (abs(self.index)>=self.match_num):
+        #     self.index = 0
+    def next(self):
+        self.index+=1
+        # if (abs(self.index)>=self.match_num):
+        #     self.index = 0
     # Main function for operations on files
-    def run(self, ans):
-        if (self.path!=None):
-            file=os.path.join(self.path, self.files[self.index])
-        else: file = self.files[self.index]
-        if(self.ifin(ans, ["help", "Help"])):
-            print("""____________________
-open: Opens file
-break: quits from program
-moveto [dest]: moves file to dest if dest is within defined pathto")
-newfolder [name]: creates new folder with name in pathto and places file there")
-remove: deletes file
-____________________""")
-        if ("open" in ans):
-            os.startfile(file)
-        elif ("moveto" in ans):
-            dest = ans[7:]
-            if ("c:\\" in dest.lower() or dest.startswith(delim)):
-                shutil.move(file, dest)
-            else:
-                shutil.move(file, os.path.join(self.pathto, dest))
-        elif ("newfolder" in ans):
-            folder_name = ans[10:]
-            if ("c:\\" in folder_name):
-                os.makedirs(folder_name)
-                shutil.move(file, folder_name)
-            else:
-                folder_full = os.path.join(self.pathto, folder_name)
-                os.makedirs(folder_full)
-                shutil.move(file, folder_full)
-        elif ("remove" in ans):
-            shutil.move(file, self.trash) 
-        else: self.index+=1
-        if (abs(self.index)>=self.match_num):
-            self.index = 0
+    if __name__=="main":
+        def run(self, ans):
+            if (self.path!=None):
+                file=os.path.join(self.path, self.files[self.index])
+            else: file = self.files[self.index]
+            if(self.ifin(ans, ["help", "Help"])):
+                print("""____________________
+    open: Opens file
+    break: quits from program
+    moveto [dest]: moves file to dest if dest is within defined pathto")
+    newfolder [name]: creates new folder with name in pathto and places file there")
+    remove: deletes file
+    ____________________""")
+            if ("open" in ans):
+                self.open()
+            elif ("moveto" in ans):
+                dest = ans[7:]
+                self.moveto(dest)
+            elif ("newfolder" in ans):
+                folder_name = ans[10:]
+                self.newfolder(folder_name)
+            elif ("remove" in ans):
+                shutil.move(file, self.trash) 
+            else: self.index+=1
+            if (abs(self.index)>=self.match_num):
+                self.index = 0
 
 
     

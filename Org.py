@@ -131,14 +131,20 @@ class OpenPage:
         self.Confirm.configure(text='''Confirm''')
 
 class Toplevel1:
+    def search(self, *args):
+        pattern = self.entry.get()
+        matches = self.org.search(pattern)
+        top1 = Toplevel(self.top)
+        Regex_window(matches, "Results", self, top1)
     def openf(self, *args):
-        self.org.run("open")
+        self.org.open()
         self.preview()
     def update(self, *args):
         self.org.update()
         self.preview()
     def moveto(self, *args):
-        self.org.run(f"moveto {self.entry.get()}")
+        self.org.moveto(self.entry.get())
+        # self.org.run(f"moveto {self.entry.get()}")
         self.preview()
     def regex(self, *args):
         pattern = self.entry.get()
@@ -147,16 +153,18 @@ class Toplevel1:
         new= Regex_window(matches, "Matches", self,top1)
         self.updates.append(new)
     def newfolder(self, *args):
-        self.org.run(f"newfolder {self.entry.get()}")
+        self.org.newfolder(self.entry.get())
+        # self.org.run(f"newfolder {self.entry.get()}")
         self.preview()
     def back(self, *args):
         self.org.back()
         self.preview()
     def delete(self, *args):
-        self.org.run(f"remove")
+        self.org.delete()
+        # self.org.run(f"remove")
         self.preview()
     def next(self, *args):
-        self.org.run(" ")
+        self.org.next()
         self.preview()
     def preview(self, *args):
         self.org.update()
@@ -188,7 +196,6 @@ class Toplevel1:
                         self.Preview.insert(0.0, content[0:self.vars["Number of characters shown (plain text)"]])
             except:
                 try:
-                    self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
                     image = Img.open(self.org.full_path())
                     width  = int(self.top.winfo_width()*(.557))
                     height  = int(self.top.winfo_height()*(.949))
@@ -201,6 +208,7 @@ class Toplevel1:
                     img = ImageTk.PhotoImage(image)
                     self.PictureFrame.config(image=img)
                     self.PictureFrame.image = img
+                    self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
                 except: 
                     if (".pdf" in file_name):
                         with open(self.org.full_path(), "rb") as f:
@@ -297,6 +305,7 @@ class Toplevel1:
         self.Additional_options.add_command(label="New File", command = self.new_file)
         self.Additional_options.add_command(label="Find", command = self.find)
         self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
+        self.Additional_options.add_command(label="Search Contents", command = self.search)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)
@@ -400,7 +409,7 @@ Delete:
 Moves current file to Trash folder
 ___________________
 Regex: 
-Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
+Returns the files found by a regex search through the current source directory. These files pop up in a preview window which can then be viewed in detail. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
 """
         # self.Text2 = tk.Text(self.top)
         # self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
@@ -484,126 +493,25 @@ Returns the files found by a regex search through the current source directory. 
         self.TLabel4.configure(background = "#d9d9d9")
         self.File.set(self.org.getCurrent())
         self.preview()
-class Toplevel2:
-    def openf(self, *args):
-        self.org.run("open")
-        self.preview()
-    def update(self, *args):
-        self.org.update()
-        self.preview()
-    def moveto(self, *args):
-        self.org.run(f"moveto {self.entry.get()}")
-        self.preview()
+class Toplevel2(Toplevel1):
     def regex(self, *args):
         pattern = self.entry.get()
         matches = self.org.regex(pattern, False) #Regex search no recursion
         self.org.files=matches
         self.org.update()
         self.preview()
-        # top1 = tk.Toplevel(self.top)
-        # new= Regex_window(matches, "Matches", self,top1)
-        #self.updates.append(new)
-    def newfolder(self, *args):
-        self.org.run(f"newfolder {self.entry.get()}")
-        self.preview()
-    def back(self, *args):
-        self.org.back()
-        self.preview()
-    def delete(self, *args):
-        self.org.run(f"remove")
-        self.preview()
-    def next(self, *args):
-        self.org.run(" ")
-        self.preview()
-    def preview(self, *args):
-        self.org.update()
-        file_name = self.org.full_path()
-        self.Surrounding.set(self.org.surrounding_files(self.vars["Number of surrounding files show"]))
-        self.currentD.set(self.org.pathto)
-        self.currentS.set(self.org.path)
-        self.trash_label.config(text = f"Trash location: {self.org.trash}")
-        self.File.set(self.org.getCurrent())
-        self.Preview.delete(1.0, tk.END)
-        self.PictureFrame.image = 0
-        self.PictureFrame.place_forget()
-        for object in self.updates:
-            if (object.top.winfo_exists()):
-                object.update()
-            else: self.updates.remove(object)
-        if (os.path.isdir(file_name)):
-            for i, file in enumerate(self.org.get_children()):
-                self.Preview.insert(i+.0, f"{file}\n")
-                if (i==self.vars["Number of subfiles shown (for directories)"]):
-                    break
-        
-        try:
-            with open(file_name, "r") as f:
-                content = f.read()
-                if (self.vars["Number of characters shown (plain text)"]==-1):
-                    self.Preview.insert(1.0, content)
-                else:
-                    self.Preview.insert(1.0, content[0:self.vars["Number of characters shown (plain text)"]])
-        except:
-            try:
-                self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
-                image = Img.open(self.org.full_path())
-                width  = int(self.top.winfo_width()*(.557))
-                height  = int(self.top.winfo_height()*(.949))
-                ratio = height/image.size[1]
-                if (ratio*image.size[0]>width):
-                    ratio = width/image.size[0]
-                    image = image.resize((width, int(ratio*image.size[1])))
-                else:
-                    image = image.resize((int(image.size[0]*ratio), height))
-                img = ImageTk.PhotoImage(image)
-                self.PictureFrame.config(image=img)
-                self.PictureFrame.image = img
-            except: 
-                if (".pdf" in file_name):
-                    with open(self.org.full_path(), "rb") as f:
-                        reader = PyPDF2.PdfReader(f)
-                        for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
-                            self.Preview.insert(i+0.0, reader.pages[i].extract_text())
-    def open_settings(self, *args):
-        top1 = tk.Toplevel(self.top)
-        self.Settings = Settings_window(self.vars, self,top=top1)
-    def move_into_current(self, *args):
-        path=self.org.full_path()
-        if (os.path.isdir(path)):
-            files = os.listdir(path)
-            new_org = sorter(pathto=self.org.pathto, files=files, trash=self.org.trash)
-            top1=tk.Toplevel(self.top)
-            Toplevel2(org=new_org, top=top1)
-    def move_back(self, *args):
-        self.org.move_back()
-        self.preview()
-    def open_preview(self, *args):
-        top1 = tk.Toplevel(self.top)
-        other_preview = Extra_preview(self.Surrounding,"Neighboring files", 'none',top1)
-        self.updates.append(other_preview)
-    def help_message(self, *args):
-        top1 = tk.Toplevel(self.top)
-        Extra_preview(self.helpMessage, "Help", "word",top1)
-    def overwrite(self, *args):
-        content = self.Preview.get(0.0, tk.END)
-        self.org.save_current(content)
-    def new_file(self, *args):
-        name = self.entry.get()
-        self.org.new_file(name)
-        self.preview()
-    def find(self, *args):
-        pattern = self.entry.get()
-        self.org.find(pattern, False)
-        self.preview()
-    def open_trash(self, *args):
-        os.startfile(self.org.trash)
+    # def search(self, *args):
+    #     pattern = self.entry.get()
+    #     matches = self.org.search(pattern)
+    #     top1 = Toplevel(self.top)
+    #     Regex_window(matches, "Results", self, top1)
     def __init__(self, org, top=None):
         # top.protocol("WM_DELETE_WINDOW", self.on_closing)
-        top.geometry("1178x589+104+110")
+        top.geometry("1100x500+104+110")
         top.minsize(120, 1)
         top.maxsize(1444, 881)
         top.resizable(1,  1)
-        top.title("Regex Files")
+        top.title("Detailed Preview")
         top.configure(background="#d9d9d9")
         top.configure(highlightbackground="#d9d9d9")
         top.configure(highlightcolor="#000000")
@@ -637,6 +545,7 @@ class Toplevel2:
         self.Additional_options.add_command(label="New File", command = self.new_file)
         self.Additional_options.add_command(label="Find", command = self.find)
         self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
+        self.Additional_options.add_command(label="Search Content", command = self.search)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)
