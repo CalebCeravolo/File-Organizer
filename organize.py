@@ -31,7 +31,7 @@ class sorter:
                 pass
         self.recurse=True
         
-    def search(self, pattern):
+    def search(self, pattern, recurse):
         pat = re.compile(pattern)
         matches = []
         for file in self.files:
@@ -44,8 +44,27 @@ class sorter:
                         if (pat.search(content)):
                             matches.append(file)
                 except: pass
+            elif (os.path.isdir(file) and recurse):
+                self.__search(pat, matches, file)
         return matches
-
+    def __search(self, pat, matches, dir):
+        try:
+            files = os.listdir(dir)
+        except PermissionError:
+            return False
+        else:
+            for file in files:
+                if (not delim in file):
+                    file = os.path.join(dir, file)
+                if (os.path.isfile(file)):
+                    try:
+                        with open(file, "r") as f:
+                            content = f.read()
+                            if (pat.search(content)):
+                                matches.append(file)
+                    except: pass
+                elif (os.path.isdir(file)):
+                    self.__search(pat, matches, file)
     # Used for regex searching, returns all matches of the given regex pattern
     def regex(self, pattern, recurse):
         if ("--avoid" in pattern):

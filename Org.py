@@ -133,7 +133,7 @@ class OpenPage:
 class Toplevel1:
     def search(self, *args):
         pattern = self.entry.get()
-        matches = self.org.search(pattern)
+        matches = self.org.search(pattern, self.recurse_content.get())
         top1 = Toplevel(self.top)
         Regex_window(matches, "Results", self, top1)
     def openf(self, *args):
@@ -285,14 +285,19 @@ class Toplevel1:
         self.currentD = tk.StringVar()
         self.recurse_find = tk.BooleanVar()
         self.recurse_regex = tk.BooleanVar()
+        self.recurse_content = tk.BooleanVar()
 
         Label(self.top, text = "Recursive Find", background="#d9d9d9").place(relx=.01, rely=.3)
         Label(self.top, text = "Recursive Regex", background="#d9d9d9").place(relx=.01, rely=.34)
+        Label(self.top, text = "Recursive Content", background = "#d9d9d9").place(relx=.01, rely=.38)
         self.RF_option = Checkbutton(self.top, variable = self.recurse_find, background="#d9d9d9")
         self.RF_option.place(relx=.10, rely=.3)
         
         self.RR_option = Checkbutton(self.top, variable = self.recurse_regex, background="#d9d9d9")
         self.RR_option.place(relx=.10, rely=.34)
+
+        self.RC_option = Checkbutton(self.top, variable = self.recurse_content, background="#d9d9d9")
+        self.RC_option.place(relx = .1, rely = .38)
 
         self.menubar = Menu(self.top)
         self.top.config(menu = self.menubar)
