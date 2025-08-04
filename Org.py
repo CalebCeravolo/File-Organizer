@@ -131,6 +131,8 @@ class OpenPage:
         self.Confirm.configure(text='''Confirm''')
 
 class Toplevel1:
+    def copy(self, *args):
+        self.top.clipboard_append(self.org.full_path())
     def search(self, *args):
         pattern = self.entry.get()
         matches = self.org.search(pattern, self.recurse_content.get())
@@ -181,40 +183,41 @@ class Toplevel1:
             if (object.top.winfo_exists()):
                 object.update()
             else: self.updates.remove(object)
-        if (os.path.isdir(file_name)):
-            for i, file in enumerate(self.org.get_children()):
-                self.Preview.insert(i+.0, f"{file}\n")
-                if (i==self.vars["Number of subfiles shown (for directories)"]):
-                    break
-        else:
-            try:
-                with open(file_name, "r") as f:
-                    content = f.read()
-                    if (self.vars["Number of characters shown (plain text)"]==-1):
-                        self.Preview.insert(0.0, content)
-                    else:
-                        self.Preview.insert(0.0, content[0:self.vars["Number of characters shown (plain text)"]])
-            except:
+        if (".exe" not in file_name):
+            if (os.path.isdir(file_name)):
+                for i, file in enumerate(self.org.get_children()):
+                    self.Preview.insert(i+.0, f"{file}\n")
+                    if (i==self.vars["Number of subfiles shown (for directories)"]):
+                        break
+            else:
                 try:
-                    image = Img.open(self.org.full_path())
-                    width  = int(self.top.winfo_width()*(.557))
-                    height  = int(self.top.winfo_height()*(.949))
-                    ratio = height/image.size[1]
-                    if (ratio*image.size[0]>width):
-                        ratio = width/image.size[0]
-                        image = image.resize((width, int(ratio*image.size[1])))
-                    else:
-                        image = image.resize((int(image.size[0]*ratio), height))
-                    img = ImageTk.PhotoImage(image)
-                    self.PictureFrame.config(image=img)
-                    self.PictureFrame.image = img
-                    self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
-                except: 
-                    if (".pdf" in file_name):
-                        with open(self.org.full_path(), "rb") as f:
-                            reader = PyPDF2.PdfReader(f)
-                            for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
-                                self.Preview.insert(i+0.0, reader.pages[i].extract_text())
+                    with open(file_name, "r") as f:
+                        content = f.read()
+                        if (self.vars["Number of characters shown (plain text)"]==-1):
+                            self.Preview.insert(0.0, content)
+                        else:
+                            self.Preview.insert(0.0, content[0:self.vars["Number of characters shown (plain text)"]])
+                except:
+                    try:
+                        image = Img.open(self.org.full_path())
+                        width  = int(self.top.winfo_width()*(.557))
+                        height  = int(self.top.winfo_height()*(.949))
+                        ratio = height/image.size[1]
+                        if (ratio*image.size[0]>width):
+                            ratio = width/image.size[0]
+                            image = image.resize((width, int(ratio*image.size[1])))
+                        else:
+                            image = image.resize((int(image.size[0]*ratio), height))
+                        img = ImageTk.PhotoImage(image)
+                        self.PictureFrame.config(image=img)
+                        self.PictureFrame.image = img
+                        self.PictureFrame.place(relx=0.425, rely=0.015, anchor = "nw")
+                    except: 
+                        if (".pdf" in file_name):
+                            with open(self.org.full_path(), "rb") as f:
+                                reader = PyPDF2.PdfReader(f)
+                                for i in range(min(self.vars["Number of pages shown (pdf)"], len(reader.pages))):
+                                    self.Preview.insert(i+0.0, reader.pages[i].extract_text())
     def openOther(self, *args):
         _top1 = tk.Toplevel(self.top)
         self.OtherPage = OpenPage(self.org, self, _top1)
@@ -246,6 +249,7 @@ class Toplevel1:
         self.org.find(pattern, self.recurse_find.get())
         self.preview()
     def on_closing(self, *args):
+        self.top.update()
         ans = askyesnocancel("Quit", "Would you like to delete your trash folder?")
         if (ans):
             shutil.rmtree(self.org.trash)
@@ -290,74 +294,70 @@ class Toplevel1:
         Label(self.top, text = "Recursive Find", background="#d9d9d9").place(relx=.01, rely=.3)
         Label(self.top, text = "Recursive Regex", background="#d9d9d9").place(relx=.01, rely=.34)
         Label(self.top, text = "Recursive Content", background = "#d9d9d9").place(relx=.01, rely=.38)
-        self.RF_option = Checkbutton(self.top, variable = self.recurse_find, background="#d9d9d9")
-        self.RF_option.place(relx=.10, rely=.3)
+        RF_option = Checkbutton(self.top, variable = self.recurse_find, background="#d9d9d9")
+        RF_option.place(relx=.10, rely=.3)
         
-        self.RR_option = Checkbutton(self.top, variable = self.recurse_regex, background="#d9d9d9")
-        self.RR_option.place(relx=.10, rely=.34)
+        RR_option = Checkbutton(self.top, variable = self.recurse_regex, background="#d9d9d9")
+        RR_option.place(relx=.10, rely=.34)
 
-        self.RC_option = Checkbutton(self.top, variable = self.recurse_content, background="#d9d9d9")
-        self.RC_option.place(relx = .1, rely = .38)
+        RC_option = Checkbutton(self.top, variable = self.recurse_content, background="#d9d9d9")
+        RC_option.place(relx = .1, rely = .38)
 
-        self.menubar = Menu(self.top)
-        self.top.config(menu = self.menubar)
-        self.File_menu = Menu(self.menubar, tearoff=False)
-        self.File_menu.add_command(label='Settings',command=self.open_settings)
-        self.Additional_options = Menu(self.menubar, tearoff = False)
-        self.Additional_options.add_command(label="New Folder",command=self.newfolder)
-        self.Additional_options.add_command(label="Open",command=self.openf)
-        self.Additional_options.add_command(label="Save File Contents", command=self.overwrite)
-        self.Additional_options.add_command(label="New File", command = self.new_file)
-        self.Additional_options.add_command(label="Find", command = self.find)
-        self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
-        self.Additional_options.add_command(label="Search Contents", command = self.search)
-        self.menubar.add_cascade(label="Menu",menu=self.File_menu)
-        self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
-        self.menubar.add_command(label = "Help", command=self.help_message)
+        menubar = Menu(top)
+        top.config(menu = menubar)
+        File_menu = Menu(menubar, tearoff=False)
+        File_menu.add_command(label='Settings',command=self.open_settings)
+        Additional_options = Menu(menubar, tearoff = False)
+        Additional_options.add_command(label="New Folder",command=self.newfolder)
+        Additional_options.add_command(label="Open",command=self.openf)
+        Additional_options.add_command(label="Save File Contents", command=self.overwrite)
+        Additional_options.add_command(label="New File", command = self.new_file)
+        Additional_options.add_command(label="Find", command = self.find)
+        Additional_options.add_command(label="Open Trash", command = self.open_trash)
+        Additional_options.add_command(label="Search Contents", command = self.search)
+        Additional_options.add_command(label="Copy File Path", command = self.copy)
+
+        menubar.add_cascade(label="Menu",menu=File_menu)
+        menubar.add_cascade(label="Additional Options", menu = Additional_options)
+        menubar.add_command(label = "Help", command=self.help_message)
 
         
         self.RegexB = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
         self.RegexB.configure(text='''Regex''')
         self.RegexB.configure(command = self.regex)
 
-        self.Delete = tk.Button(self.top)
-        self.Delete.configure(activebackground="#d9d9d9")
-        self.Delete.configure(activeforeground="black")
-        self.Delete.configure(background="#d9d9d9")
-        self.Delete.configure(disabledforeground="#a3a3a3")
-        self.Delete.configure(text='''Delete''')
-        self.Delete.configure(command = self.delete)
+        Delete = tk.Button(self.top)
+        Delete.configure(activebackground="#d9d9d9", activeforeground="black", 
+                         background="#d9d9d9", disabledforeground="#a3a3a3", text='''Delete''', command = self.delete)
 
         
 
-        self.Moveto = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Moveto.configure(text='''Move to''')
-        self.Moveto.configure(command = self.moveto)
+        Moveto = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9", text='''Move to''', command = self.moveto)
         
         
-        self.Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Next.configure(text='''Next''')
-        self.Next.configure(command = self.next)
+        Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Next.configure(text='''Next''')
+        Next.configure(command = self.next)
 
-        self.Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Back.configure(text='''Back''')
-        self.Back.configure(command = self.back)
+        Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Back.configure(text='''Back''')
+        Back.configure(command = self.back)
 
-        self.Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Enter.configure(command = self.move_into_current, text = "Move into current")
+        Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Enter.configure(command = self.move_into_current, text = "Move into current")
 
-        self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Move_back.configure(command = self.move_back, text = "Move into previous")
+        Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Move_back.configure(command = self.move_back, text = "Move into previous")
         
 
-        self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
+        ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
-        self.Extra_preview = Button(self.top)
-        self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
-        self.Extra_preview.configure(background="#d9d9d9")
-        self.Extra_preview.configure(foreground="#000000")
-        self.Extra_preview.configure(activebackground = "#d9d9d9")
+        Extra_preview = Button(self.top)
+        Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
+        Extra_preview.configure(background="#d9d9d9")
+        Extra_preview.configure(foreground="#000000")
+        Extra_preview.configure(activebackground = "#d9d9d9")
 
        
 
@@ -365,18 +365,18 @@ class Toplevel1:
         positions2 = linspace(.01, .29, 3)
         width = 67
         p1height = .64
-        self.Next.place(relx=positions[1], rely=p1height, height=26, width=width)
+        Next.place(relx=positions[1], rely=p1height, height=26, width=width)
         #self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
-        self.Delete.place(relx=positions[3], rely=p1height, height=26, width=width)
+        Delete.place(relx=positions[3], rely=p1height, height=26, width=width)
         self.RegexB.place(relx=positions[4], rely=p1height, height=26, width=width)
-        self.Moveto.place(relx=positions[2], rely=p1height, height=26, width=width)
-        self.Back.place(relx=positions[0], rely=p1height, height=26, width=width)
+        Moveto.place(relx=positions[2], rely=p1height, height=26, width=width)
+        Back.place(relx=positions[0], rely=p1height, height=26, width=width)
 
         p2height = .56
-        self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
-        self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
-        self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
-        self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
+        ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
+        Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
+        Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
+        Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         self.helpMessage = r"""Welcome! 
 This is a file organizer app. This help box gives info into how to use the buttons on the main screen. The regex window has further information into how to use regex.
 You can use this organizer as a text editor by editing the preview box and selecting Save File Content from the Additional Options dropdown menu
@@ -448,57 +448,66 @@ Returns the files found by a regex search through the current source directory. 
         self.PictureFrame.configure(activebackground="#d9d9d9")
         self.PictureFrame.configure(activeforeground="black")
         
-        self.currentSource = tk.Label(self.top)
-        self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
-        self.labelSource = tk.Label(self.top)
-        self.labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
+        currentSource = tk.Label(self.top)
+        currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
+        labelSource = tk.Label(self.top)
+        labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
 
-        self.currentDest = tk.Label(self.top)
-        self.currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
-        self.labelDest = tk.Label(self.top)
-        self.labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
+        currentDest = tk.Label(self.top)
+        currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
+        labelDest = tk.Label(self.top)
+        labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
         
         self.trash_label = tk.Label(self.top, text = f"Trash location: {org.trash}", background = "#d9d9d9")
     
 
         xpos_labels = .01
         ystart_labels = .15
-        self.currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
-        self.currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
-        self.labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
-        self.labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
+        currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
+        currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
+        labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
+        labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
         self.trash_label.place(relx=xpos_labels, rely = ystart_labels+.06, anchor = "w")
         
-        self.TLabel3 = ttk.Label(self.top)
-        self.TLabel3.place(relx=0.007, rely=0.071, height=20, width=29)
-        self.TLabel3.configure(font="TkDefaultFont")
-        self.TLabel3.configure(relief="flat")
-        self.TLabel3.configure(anchor='w')
-        self.TLabel3.configure(justify='left')
-        self.TLabel3.configure(text='''File:''')
-        self.TLabel3.configure(compound='left')
-        self.TLabel3.configure(background = "#d9d9d9")
+        File_point = ttk.Label(self.top)
+        File_point.place(relx=0.007, rely=0.071, height=20, width=29)
+        File_point.configure(font="TkDefaultFont")
+        File_point.configure(relief="flat")
+        File_point.configure(anchor='w')
+        File_point.configure(justify='left')
+        File_point.configure(text='''File:''')
+        File_point.configure(compound='left')
+        File_point.configure(background = "#d9d9d9")
 
-        self.TEntry2 = ttk.Entry(self.top)
-        self.TEntry2.place(relx=0.076, rely=p1height+.1, height = 24
+        Entry_box = ttk.Entry(self.top)
+        Entry_box.place(relx=0.076, rely=p1height+.1, height = 24
                 , relwidth=0.25, anchor = "nw")
-        self.TEntry2.configure(takefocus="")
-        self.TEntry2.configure(cursor="ibeam")
-        self.TEntry2.configure(textvariable = self.entry)
+        Entry_box.configure(takefocus="")
+        Entry_box.configure(cursor="ibeam")
+        Entry_box.configure(textvariable = self.entry)
 
-        self.TLabel4 = ttk.Label(self.top)
-        self.TLabel4.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
-        self.TLabel4.configure(font="-family {Segoe UI} -size 9")
-        self.TLabel4.configure(relief="flat")
-        self.TLabel4.configure(anchor='w')
-        self.TLabel4.configure(justify='left')
-        self.TLabel4.configure(textvariable=self.File)
-        self.TLabel4.configure(compound='left')
-        self.TLabel4.configure(cursor="fleur")
-        self.TLabel4.configure(background = "#d9d9d9")
+        File_label = ttk.Label(self.top)
+        File_label.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
+        File_label.configure(font="-family {Segoe UI} -size 9")
+        File_label.configure(relief="flat")
+        File_label.configure(anchor='w')
+        File_label.configure(justify='left')
+        File_label.configure(textvariable=self.File)
+        File_label.configure(compound='left')
+        File_label.configure(cursor="fleur")
+        File_label.configure(background = "#d9d9d9", state = 'active')
         self.File.set(self.org.getCurrent())
         self.preview()
 class Toplevel2(Toplevel1):
+    def move_into_current(self, *args):
+        path = self.org.full_path()
+        files = self.org.get_children()
+        new_files = []
+        for file in files:
+            new_files.append(os.path.join(path, file))
+        org = sorter(files = new_files, trash = self.org.trash)
+        top1 = tk.Toplevel(self.top)
+        Toplevel2(org, top1)
     def regex(self, *args):
         pattern = self.entry.get()
         matches = self.org.regex(pattern, False) #Regex search no recursion
@@ -512,7 +521,7 @@ class Toplevel2(Toplevel1):
     #     Regex_window(matches, "Results", self, top1)
     def __init__(self, org, top=None):
         # top.protocol("WM_DELETE_WINDOW", self.on_closing)
-        top.geometry("1100x500+104+110")
+        top.geometry("1200x600+120+120")
         top.minsize(120, 1)
         top.maxsize(1444, 881)
         top.resizable(1,  1)
@@ -572,29 +581,29 @@ class Toplevel2(Toplevel1):
         self.Moveto.configure(text='''Move to''')
         self.Moveto.configure(command = self.moveto)
         
-        self.Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Next.configure(text='''Next''')
-        self.Next.configure(command = self.next)
+        Next = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Next.configure(text='''Next''')
+        Next.configure(command = self.next)
 
-        self.Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Back.configure(text='''Back''')
-        self.Back.configure(command = self.back)
+        Back = tk.Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Back.configure(text='''Back''')
+        Back.configure(command = self.back)
 
-        self.Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        self.Enter.configure(command = self.move_into_current, text = "Move into current")
+        Enter = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        Enter.configure(command = self.move_into_current, text = "Move into current")
 
-        # self.Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        # self.Move_back.configure(command = self.move_back, text = "Move into previous")
+        # Move_back = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        # Move_back.configure(command = self.move_back, text = "Move into previous")
         
 
-        # self.ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
-        # self.ChangeDir.configure(command = self.openOther, text = "Set Directories")
+        # ChangeDir = Button(self.top, activebackground="#d9d9d9", background="#d9d9d9")
+        # ChangeDir.configure(command = self.openOther, text = "Set Directories")
 
-        self.Extra_preview = Button(self.top)
-        self.Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
-        self.Extra_preview.configure(background="#d9d9d9")
-        self.Extra_preview.configure(foreground="#000000")
-        self.Extra_preview.configure(activebackground = "#d9d9d9")
+        Extra_preview = Button(self.top)
+        Extra_preview.configure(command = self.open_preview, text = "View Surrounding Files")
+        Extra_preview.configure(background="#d9d9d9")
+        Extra_preview.configure(foreground="#000000")
+        Extra_preview.configure(activebackground = "#d9d9d9")
 
        
 
@@ -602,18 +611,18 @@ class Toplevel2(Toplevel1):
         positions2 = linspace(.01, .29, 3)
         width = 67
         p1height = .64
-        self.Next.place(relx=positions[1], rely=p1height, height=26, width=width)
+        Next.place(relx=positions[1], rely=p1height, height=26, width=width)
         #self.Open.place(relx=positions[5], rely=0.537, height=26, width=width)
         self.Delete.place(relx=positions[3], rely=p1height, height=26, width=width)
         self.RegexB.place(relx=positions[4], rely=p1height, height=26, width=width)
         self.Moveto.place(relx=positions[2], rely=p1height, height=26, width=width)
-        self.Back.place(relx=positions[0], rely=p1height, height=26, width=width)
+        Back.place(relx=positions[0], rely=p1height, height=26, width=width)
 
         p2height = .56
-        #self.ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
-        self.Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
-        #self.Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
-        self.Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
+        #ChangeDir.place(relx = positions2[0], rely=p2height, width = width*2)
+        Enter.place(relx = positions2[1], rely = p2height, height = 26, width=width*2)
+        #Move_back.place(relx = positions2[2], rely = p2height, height = 26, width=width*2)
+        Extra_preview.place(relx = .420, rely = .01, anchor = 'ne', height = 26, width = width*2.5)
         self.helpMessage = r"""Welcome! 
 ___________________
 The organizer defaults to operate within whatever directory this app was launched from, go to change directories to change this. Change Directories can take an absolute or relative path. Relative paths are relative to Target Directory
@@ -676,54 +685,53 @@ Returns the files found by a regex search through the current source directory. 
         self.PictureFrame.configure(activebackground="#d9d9d9")
         self.PictureFrame.configure(activeforeground="black")
         
-        self.currentSource = tk.Label(self.top)
-        self.currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
-        self.labelSource = tk.Label(self.top)
-        self.labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
+        currentSource = tk.Label(self.top)
+        currentSource.configure(background="#d9d9d9", text = "Current Source Directory:")
+        labelSource = tk.Label(self.top)
+        labelSource.configure(background="#d9d9d9", textvariable = self.currentS)
 
-        self.currentDest = tk.Label(self.top)
-        self.currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
-        self.labelDest = tk.Label(self.top)
-        self.labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
+        currentDest = tk.Label(self.top)
+        currentDest.configure(background="#d9d9d9", text = "Current Target Directory:")
+        labelDest = tk.Label(self.top)
+        labelDest.configure(background="#d9d9d9", textvariable = self.currentD)
         
         self.trash_label = tk.Label(self.top, text = f"Trash location: {org.trash}", background = "#d9d9d9")
     
 
         xpos_labels = .01
         ystart_labels = .15
-        self.currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
-        self.currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
-        self.labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
-        self.labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
+        currentSource.place(relx = xpos_labels, rely = ystart_labels, anchor = "w")
+        currentDest.place(relx = xpos_labels, rely = ystart_labels+.03, anchor = "w")
+        labelSource.place(relx = xpos_labels+.12, rely = ystart_labels, anchor = "w")
+        labelDest.place(relx = xpos_labels+.12, rely = ystart_labels+.03, anchor = "w")
         self.trash_label.place(relx=xpos_labels, rely = ystart_labels+.06, anchor = "w")
         
-        self.TLabel3 = ttk.Label(self.top)
-        self.TLabel3.place(relx=0.007, rely=0.071, height=20, width=29)
-        self.TLabel3.configure(font="TkDefaultFont")
-        self.TLabel3.configure(relief="flat")
-        self.TLabel3.configure(anchor='w')
-        self.TLabel3.configure(justify='left')
-        self.TLabel3.configure(text='''File:''')
-        self.TLabel3.configure(compound='left')
-        self.TLabel3.configure(background = "#d9d9d9")
+        File_point = ttk.Label(self.top)
+        File_point.place(relx=0.007, rely=0.071, height=20, width=29)
+        File_point.configure(font="TkDefaultFont")
+        File_point.configure(relief="flat")
+        File_point.configure(anchor='w')
+        File_point.configure(justify='left')
+        File_point.configure(text='''File:''')
+        File_point.configure(compound='left')
+        File_point.configure(background = "#d9d9d9")
 
-        self.TEntry2 = ttk.Entry(self.top)
-        self.TEntry2.place(relx=0.076, rely=p1height+.1, height = 24
+        Entry_box = ttk.Entry(self.top)
+        Entry_box.place(relx=0.076, rely=p1height+.1, height = 24
                 , relwidth=0.25, anchor = "nw")
-        self.TEntry2.configure(takefocus="")
-        self.TEntry2.configure(cursor="ibeam")
-        self.TEntry2.configure(textvariable = self.entry)
+        Entry_box.configure(cursor="ibeam")
+        Entry_box.configure(textvariable = self.entry)
 
-        self.TLabel4 = ttk.Label(self.top)
-        self.TLabel4.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
-        self.TLabel4.configure(font="-family {Segoe UI} -size 9")
-        self.TLabel4.configure(relief="flat")
-        self.TLabel4.configure(anchor='w')
-        self.TLabel4.configure(justify='left')
-        self.TLabel4.configure(textvariable=self.File)
-        self.TLabel4.configure(compound='left')
-        self.TLabel4.configure(cursor="fleur")
-        self.TLabel4.configure(background = "#d9d9d9")
+        File_label = ttk.Label(self.top)
+        File_label.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
+        File_label.configure(font="-family {Segoe UI} -size 9")
+        File_label.configure(relief="flat")
+        File_label.configure(anchor='w')
+        File_label.configure(justify='left')
+        File_label.configure(textvariable=self.File)
+        File_label.configure(compound='left')
+        File_label.configure(cursor="fleur")
+        File_label.configure(background = "#d9d9d9")
         self.File.set(self.org.getCurrent())
         self.preview()
 
@@ -873,7 +881,7 @@ Examples:
         self.master = master
         top.title(name)
         self.files = files
-        self.preview = Text(top, wrap = 'none', insertofftime = 800, insertontime = 700)
+        self.preview = Text(top, wrap = 'none')
         top.attributes("-topmost", True)
         #self.menubar = Menu(top)
         
@@ -910,7 +918,6 @@ Examples:
         self.Moveto.configure(highlightbackground="#d9d9d9", highlightcolor="#000000")
         self.Moveto.configure(text='''Move All To''')
         self.Moveto.configure(command = self.move_all)
-        self.Back = tk.Button(top)
 
         self.Folder  = tk.Button(top, activebackground="#d9d9d9", activeforeground="black", background="#d9d9d9")
         self.Folder.configure(disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 9", foreground="#000000")

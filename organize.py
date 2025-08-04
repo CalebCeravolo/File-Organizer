@@ -260,7 +260,10 @@ class sorter:
     
     # Returns all the files in the current directory
     def get_children(self):
-        return os.listdir(self.full_path())
+        path = self.full_path()
+        if (os.path.isdir(path)):
+            return os.listdir(path)
+        else: return []
     
     # Returns full path of the current file
     def full_path(self):
