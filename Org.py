@@ -7,6 +7,7 @@ import os.path
 from tkinter.scrolledtext import ScrolledText
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 from PIL import (Image as Img, ImageTk)
 import PyPDF2
 from shutil import move
@@ -24,6 +25,18 @@ import Organize_support
 from tkinter.messagebox import askyesnocancel
 import shutil
 class OpenPage:
+    def file_menu_source(self, *args):
+        path = filedialog.askdirectory(title = "Select Source Folder")
+        self.org.change_source(path)
+        self.other.preview()
+    def file_menu_dest(self, *args):
+        path = filedialog.askdirectory(title = "Select Destination Folder")
+        self.org.change_dest(path)
+        self.other.preview()
+    def file_menu_trash(self, *args):
+        path = filedialog.askdirectory(title = "Select Trash Folder")
+        self.org.change_trash(path)
+        self.other.preview()
     def save_and_proceed(self, *args):
         source = self.source.get()
         dest = self.dest.get()
@@ -31,13 +44,10 @@ class OpenPage:
         if (len(source)>0): self.org.change_source(source)
         if (len(dest)>0):   self.org.change_dest(dest)
         if (len(trash)>0):  self.org.change_trash(trash)
-        self.org.update()
         self.other.preview()
         self.top.destroy()
         
     def __init__(self, org, other, top=None):
-        '''This class configures and populates the toplevel window.
-           top is the toplevel containing window.'''
         self.other = other
         self.source = ""
         self.dest = ""
@@ -55,14 +65,18 @@ class OpenPage:
         self.dest = tk.StringVar()
         self.trash = StringVar()
         ypos = linspace(.3,.5,3)
-        self.TLabel2 = ttk.Label(self.top)
-        self.TLabel2.place(relx=0.340, rely=ypos[1], height=20, width=93, anchor = 'e')
-        self.TLabel2.configure(font="-family {Segoe UI} -size 9")
-        self.TLabel2.configure(relief="flat")
-        self.TLabel2.configure(justify='left')
-        self.TLabel2.configure(text='''Target Directory''')
-        self.TLabel2.configure(compound='left')
-        self.TLabel2.configure(background = "#d9d9d9")
+        Target = ttk.Label(self.top)
+        Target.place(relx=0.340, rely=ypos[1], height=20, width=93, anchor = 'e')
+        Target.configure(font="-family {Segoe UI} -size 9")
+        Target.configure(relief="flat")
+        Target.configure(justify='left')
+        Target.configure(text='''Target Directory''')
+        Target.configure(compound='left')
+        Target.configure(background = "#d9d9d9")
+
+        Button(top, command=self.file_menu_source, text = "...").place(relx=.6, rely=ypos[0], width=20, height=20, anchor="w")
+        Button(top, command=self.file_menu_dest, text = "...").place(relx=.6, rely=ypos[1], width=20, height=20, anchor="w")
+        Button(top, command=self.file_menu_trash, text = "...").place(relx=.6, rely=ypos[2], width=20, height=20, anchor="w")
 
         self.TEntry1 = ttk.Entry(self.top)
         self.TEntry1.place(relx=0.346, rely=ypos[1], relheight=0.042
@@ -72,50 +86,35 @@ class OpenPage:
         self.TEntry1.configure(cursor="ibeam")
 
         
-        self.TLabel1 = ttk.Label(self.top)
-        self.TLabel1.place(relx=0.340, rely=ypos[0], height=20, width=93, anchor = 'e')
-        self.TLabel1.configure(font="-family {Segoe UI} -size 9")
-        self.TLabel1.configure(relief="flat")
-        self.TLabel1.configure(justify='left')
-        self.TLabel1.configure(text='''Source Directory''')
-        self.TLabel1.configure(compound='left')
-        self.TLabel1.configure(background = "#d9d9d9")
+        Source = ttk.Label(self.top)
+        Source.place(relx=0.340, rely=ypos[0], height=20, width=93, anchor = 'e')
+        Source.configure(font="-family {Segoe UI} -size 9")
+        Source.configure(relief="flat")
+        Source.configure(justify='left')
+        Source.configure(text='''Source Directory''')
+        Source.configure(compound='left')
+        Source.configure(background = "#d9d9d9")
 
-        self.Entry1 = ttk.Entry(self.top)
-        self.Entry1.place(relx=0.346, rely=ypos[0], height=20, relwidth=0.247, anchor = 'w')
-        self.Entry1.configure(font="-family {Courier New} -size 10")
-        self.Entry1.configure(textvariable=self.source)
-        self.Entry1.configure(cursor = "ibeam")
+        Source_entry = ttk.Entry(self.top)
+        Source_entry.place(relx=0.346, rely=ypos[0], height=20, relwidth=0.247, anchor = 'w')
+        Source_entry.configure(font="-family {Courier New} -size 10")
+        Source_entry.configure(textvariable=self.source)
+        Source_entry.configure(cursor = "ibeam")
 
-        self.T = ttk.Label(self.top)
-        self.T.place(relx=0.340, rely=ypos[2], height=20, width=93, anchor = 'e')
-        self.T.configure(font="-family {Segoe UI} -size 9")
-        self.T.configure(relief="flat")
-        self.T.configure(justify='left')
-        self.T.configure(text='''Trash Directory''')
-        self.T.configure(compound='left')
-        self.T.configure(background = "#d9d9d9")
+        Trash= ttk.Label(self.top)
+        Trash.place(relx=0.340, rely=ypos[2], height=20, width=93, anchor = 'e')
+        Trash.configure(font="-family {Segoe UI} -size 9")
+        Trash.configure(relief="flat")
+        Trash.configure(justify='left')
+        Trash.configure(text='''Trash Directory''')
+        Trash.configure(compound='left')
+        Trash.configure(background = "#d9d9d9")
 
-        self.Entry1 = ttk.Entry(self.top)
-        self.Entry1.place(relx=0.346, rely=ypos[2], height=20, relwidth=0.247, anchor = 'w')
-        self.Entry1.configure(font="-family {Courier New} -size 10")
-        self.Entry1.configure(textvariable=self.trash)
-        self.Entry1.configure(cursor = "ibeam")
-
-        # self.TLabel1 = ttk.Label(self.top)
-        # self.TLabel1.place(relx=0.340, rely=0.3, height=20, width=93, anchor = 'e')
-        # self.TLabel1.configure(font="-family {Segoe UI} -size 9")
-        # self.TLabel1.configure(relief="flat")
-        # self.TLabel1.configure(justify='left')
-        # self.TLabel1.configure(text='''Trash''')
-        # self.TLabel1.configure(compound='left')
-        # self.TLabel1.configure(background = "#d9d9d9")
-
-        self.Entry1 = ttk.Entry(self.top)
-        self.Entry1.place(relx=0.346, rely=ypos[0], height=20, relwidth=0.247, anchor = 'w')
-        self.Entry1.configure(font="-family {Courier New} -size 10")
-        self.Entry1.configure(textvariable=self.source)
-        self.Entry1.configure(cursor = "ibeam")
+        Trash_entry = ttk.Entry(self.top)
+        Trash_entry.place(relx=0.346, rely=ypos[2], height=20, relwidth=0.247, anchor = 'w')
+        Trash_entry.configure(font="-family {Courier New} -size 10")
+        Trash_entry.configure(textvariable=self.trash)
+        Trash_entry.configure(cursor = "ibeam")
 
         self.Confirm = tk.Button(self.top)
         self.Confirm.place(relx=0.4, rely=0.554, height=20, width=93)
@@ -137,12 +136,11 @@ class Toplevel1:
         pattern = self.entry.get()
         matches = self.org.search(pattern, self.recurse_content.get())
         top1 = Toplevel(self.top)
-        Regex_window(matches, "Results", self, top1)
+        Regex_window(matches, f"{pattern} Results", self, top1)
     def openf(self, *args):
         self.org.open()
         self.preview()
     def update(self, *args):
-        self.org.update()
         self.preview()
     def moveto(self, *args):
         self.org.moveto(self.entry.get())
@@ -152,7 +150,7 @@ class Toplevel1:
         pattern = self.entry.get()
         matches = self.org.regex(pattern, self.recurse_regex.get())
         top1 = tk.Toplevel(self.top)
-        new= Regex_window(matches, "Matches", self,top1)
+        new= Regex_window(matches, f"{pattern} Matches", self,top1)
         self.updates.append(new)
     def newfolder(self, *args):
         self.org.newfolder(self.entry.get())
@@ -514,6 +512,12 @@ class Toplevel2(Toplevel1):
         self.org.files=matches
         self.org.update()
         self.preview()
+    def search(self, *args):
+        pattern = self.entry.get()
+        matches = self.org.search(pattern, self.recurse_content.get())
+        self.org.files=matches
+        self.org.update()
+        self.preview()
     # def search(self, *args):
     #     pattern = self.entry.get()
     #     matches = self.org.search(pattern)
@@ -560,6 +564,7 @@ class Toplevel2(Toplevel1):
         self.Additional_options.add_command(label="Find", command = self.find)
         self.Additional_options.add_command(label="Open Trash", command = self.open_trash)
         self.Additional_options.add_command(label="Search Content", command = self.search)
+        self.Additional_options.add_command(label="Copy File Path", command = self.copy)
         self.menubar.add_cascade(label="Menu",menu=self.File_menu)
         self.menubar.add_cascade(label="Additional Options", menu = self.Additional_options)
         self.menubar.add_command(label = "Help", command=self.help_message)
@@ -653,18 +658,6 @@ ___________________
 Regex: 
 Returns the files found by a regex search through the current source directory. Takes in a regex pattern from the command line. Check out the regex popup window help menu for more info
 """
-        # self.Text2 = tk.Text(self.top)
-        # self.Text2.place(relx=0.013, rely=0.67, relheight=0.30, relwidth=0.357)
-        # self.Text2.configure(background="#d9d9d9")
-        # self.Text2.configure(font="TkTextFont")
-        # self.Text2.configure(foreground="black")
-        # self.Text2.configure(highlightbackground="#43f0fe")
-        # self.Text2.configure(highlightcolor="#000000")
-        # self.Text2.configure(insertbackground="#000000")
-        # self.Text2.configure(selectbackground="#d9d9d9")
-        # self.Text2.configure(selectforeground="black")
-        # self.Text2.configure(wrap="word")
-        # self.Text2.insert(1.0, helpMessage)
 
         self.Preview = ScrolledText(self.top)
         self.Preview.place(relx=0.425, rely=0.015, relheight=0.949
@@ -723,7 +716,7 @@ Returns the files found by a regex search through the current source directory. 
         Entry_box.configure(textvariable = self.entry)
 
         File_label = ttk.Label(self.top)
-        File_label.place(relx=0.028, rely=0.071, height=20, relwidth = .38)
+        File_label.place(relx=0.028, rely=0.071, height=20)
         File_label.configure(font="-family {Segoe UI} -size 9")
         File_label.configure(relief="flat")
         File_label.configure(anchor='w')

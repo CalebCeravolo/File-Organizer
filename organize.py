@@ -29,33 +29,21 @@ class sorter:
                 os.mkdir(self.trash)
             except FileExistsError:
                 pass
-        self.recurse=True
         
     def search(self, pattern, recurse):
+        if ("--avoid" in pattern):
+            ind = pattern.find("--avoid")
+            ind2=ind+len("--avoid")+1
+            npattern = pattern[ind2:]
+            pattern=pattern[:ind-1]
+            npat=re.compile(npattern)
+        else: npat = None
         pat = re.compile(pattern)
         matches = []
         for file in self.files:
-            if (not delim in file):
-                file = os.path.join(self.path, file)
-            if (os.path.isfile(file)):
-                try:
-                    with open(file, "r") as f:
-                        content = f.read()
-                        if (pat.search(content)):
-                            matches.append(file)
-                except: pass
-            elif (os.path.isdir(file) and recurse):
-                self.__search(pat, matches, file)
-        return matches
-    def __search(self, pat, matches, dir):
-        try:
-            files = os.listdir(dir)
-        except PermissionError:
-            return False
-        else:
-            for file in files:
+            if (npat==None or not npat.fullmatch(file)):
                 if (not delim in file):
-                    file = os.path.join(dir, file)
+                    file = os.path.join(self.path, file)
                 if (os.path.isfile(file)):
                     try:
                         with open(file, "r") as f:
@@ -63,8 +51,28 @@ class sorter:
                             if (pat.search(content)):
                                 matches.append(file)
                     except: pass
-                elif (os.path.isdir(file)):
-                    self.__search(pat, matches, file)
+                elif (os.path.isdir(file) and recurse):
+                    self.__search(pat, matches, file, npat)
+        return matches
+    def __search(self, pat, matches, dir,npat):
+        try:
+            files = os.listdir(dir)
+        except PermissionError:
+            return False
+        else:
+            for file in files:
+                if (npat==None or not npat.fullmatch(file)):
+                    if (not delim in file):
+                        file = os.path.join(dir, file)
+                    if (os.path.isfile(file)):
+                        try:
+                            with open(file, "r") as f:
+                                content = f.read()
+                                if (pat.search(content)):
+                                    matches.append(file)
+                        except: pass
+                    elif (os.path.isdir(file)):
+                        self.__search(pat, matches, file)
     # Used for regex searching, returns all matches of the given regex pattern
     def regex(self, pattern, recurse):
         if ("--avoid" in pattern):
@@ -121,7 +129,7 @@ class sorter:
                         else: name = file
                         matches.append(name)
 
-    # Refreshes file databank, good to initialize once the target directory files have changed
+    # Refreshes file databank, should be ran once the target directory files have changed
     def update(self):
         if (self.path==None):
             for file in self.files:
@@ -294,12 +302,17 @@ class sorter:
         if ("c:" in trash_dest.lower() or trash_dest.startswith(delim)):
             if (not os.path.isdir(trash_dest)):
                 os.makedirs(trash_dest)
-            self.trash = trash_dest
+            
         else: 
-            path = os.path.join(_location, trash_dest)
-            if (not os.path.isdir(path)):
-                os.makedirs(path)
-            self.trash=path
+            trash_dest = os.path.join(_location, trash_dest)
+            if (not os.path.isdir(trash_dest)):
+                os.makedirs(trash_dest)
+        files = os.listdir(self.trash)
+        for file in files:
+            file = os.path.join(self.trash, file)
+            shutil.move(file, trash_dest)
+        os.remove(self.trash)
+        self.trash = trash_dest
     # Prints current file to the terminal. Useful for debugging
     def printCurrent(self):
         file=self.files[self.index]
@@ -316,8 +329,13 @@ class sorter:
         file=self.full_path()
         if (not ("c:\\" in dest.lower() or dest.startswith(delim))):
             dest=os.path.join(self.pathto, dest)
-        if (os.path.isdir(dest)):
-            shutil.move(file, dest)
+        if (not os.path.isdir(dest)):
+            if ("." not in dest and not os.path.isdir(file)):
+                rev = file[::-1]
+                ind = rev.find(".")
+                ext = file[-1*ind-1:]
+                dest = f"{dest}{ext}"
+        shutil.move(file, dest)
 
     def newfolder(self, folder_name):
         file=self.full_path()
@@ -341,7 +359,7 @@ class sorter:
         # if (abs(self.index)>=self.match_num):
         #     self.index = 0
     # Main function for operations on files
-    if __name__=="main":
+    if __name__=="__main__":
         def run(self, ans):
             if (self.path!=None):
                 file=os.path.join(self.path, self.files[self.index])
